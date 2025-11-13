@@ -880,7 +880,7 @@ export const updateProfilePicture = async (req, res) => {
 
     res.status(200).json({
       message: "Profile picture updated.",
-      profilePictureUrl: data.profile_picture_url,
+      profilePictureUrl: profile.profile_picture_url,
     });
   } catch (error) {
     console.error("Update PFP Error:", error.message);

@@ -1,53 +1,32 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Logo from '@/components/Logo';
-
-const containerVariants = {
-  hidden: { opacity: 0, y: 30 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: [0.4, 0, 0.2, 1],
-      staggerChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.5,
-      ease: [0.4, 0, 0.2, 1],
-    },
-  },
-};
+import { containerVariants, slideUpVariants } from '@/lib/animations';
 
 const AuthLayout = ({ children, title, description }) => {
   return (
-    <div className='flex min-h-screen items-center justify-center bg-background p-4'>
+    <div
+      className='relative z-10 flex min-h-screen items-center justify-center p-4'
+      style={{ background: 'transparent' }}
+    >
       <motion.div
-        className='w-full max-w-md overflow-hidden rounded-2xl border border-outline-variant bg-surface'
+        className='relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-outline-variant bg-surface shadow-2xl'
         variants={containerVariants}
         initial='hidden'
         animate='show'
       >
         <div className='p-8'>
-          <motion.div variants={itemVariants} className='flex justify-start'>
+          <motion.div variants={slideUpVariants} className='flex justify-start'>
             <Logo />
           </motion.div>
-          <motion.div variants={itemVariants} className='mt-6'>
+          <motion.div variants={slideUpVariants} className='mt-6'>
             <h2 className='text-2xl font-bold tracking-tight text-foreground'>
               {title}
             </h2>
             <p className='mt-2 text-sm text-muted-foreground'>{description}</p>
           </motion.div>
 
-          <motion.div variants={itemVariants} className='mt-8'>
+          <motion.div variants={slideUpVariants} className='mt-8'>
             {children}
           </motion.div>
         </div>

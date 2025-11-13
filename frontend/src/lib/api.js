@@ -11,14 +11,18 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.log('🚨 401 Interceptor triggered!', {
-        url: error.config?.url,
-        method: error.config?.method,
-        response: error.response?.data,
-      });
-      localStorage.removeItem('playbook-token');
-      localStorage.removeItem('playbook-user');
-      window.location.href = '/login';
+      // Don't redirect to login if we're on OTP verification or password reset pages
+      const currentPath = window.location.pathname;
+      const excludedPaths = ['/verify-2fa', '/reset-password'];
+      const isExcluded = excludedPaths.some((path) =>
+        currentPath.includes(path)
+      );
+
+      if (!isExcluded) {
+        localStorage.removeItem('playbook-token');
+        localStorage.removeItem('playbook-user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

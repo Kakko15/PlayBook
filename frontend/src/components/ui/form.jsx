@@ -56,12 +56,12 @@ const FormItem = React.forwardRef(({ className, ...props }, ref) => {
 FormItem.displayName = 'FormItem';
 
 const FormLabel = React.forwardRef(({ className, ...props }, ref) => {
-  const { error, formItemId } = useFormField();
+  const { formItemId } = useFormField();
 
   return (
     <Label
       ref={ref}
-      className={cn(error && 'text-destructive', className)}
+      className={cn(className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -69,7 +69,7 @@ const FormLabel = React.forwardRef(({ className, ...props }, ref) => {
 });
 FormLabel.displayName = 'FormLabel';
 
-const FormControl = React.forwardRef(({ ...props }, ref) => {
+const FormControl = React.forwardRef(({ className, ...props }, ref) => {
   const { error, formItemId, formDescriptionId, formMessageId } =
     useFormField();
 
@@ -77,6 +77,10 @@ const FormControl = React.forwardRef(({ ...props }, ref) => {
     <Slot
       ref={ref}
       id={formItemId}
+      className={cn(
+        error && 'border-destructive focus-visible:ring-destructive',
+        className
+      )}
       aria-describedby={
         !error
           ? `${formDescriptionId}`
@@ -113,14 +117,18 @@ const FormMessage = React.forwardRef(
     }
 
     return (
-      <p
+      <motion.p
         ref={ref}
         id={formMessageId}
         className={cn('text-sm font-medium text-destructive', className)}
+        initial={{ opacity: 0, y: -10, height: 0 }}
+        animate={{ opacity: 1, y: 0, height: 'auto' }}
+        exit={{ opacity: 0, y: -10, height: 0 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
         {...props}
       >
         {body}
-      </p>
+      </motion.p>
     );
   }
 );

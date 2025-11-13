@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import Logo from '@/components/Logo';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { OTP_LENGTH } from '@/lib/constants';
+import { navigateAfterLogin } from '@/lib/authUtils';
 
 const OtpSetupPage = () => {
   const [secret, setSecret] = useState('');
@@ -25,9 +27,7 @@ const OtpSetupPage = () => {
         const data = await api.generateOtp();
         setSecret(data.secret);
         setQrCodeUrl(data.qrCodeUrl);
-        console.log('QR Code URL length:', data.qrCodeUrl?.length);
       } catch (error) {
-        console.error('OTP generation error:', error);
         toast.error('Failed to generate 2FA secret. Please refresh.');
       } finally {
         setIsLoading(false);
@@ -37,16 +37,11 @@ const OtpSetupPage = () => {
   }, []);
 
   const verifyOtp = async (code) => {
-    if (code.length !== 6) return;
+    if (code.length !== OTP_LENGTH) return;
 
     setIsVerifying(true);
-    const startTime = performance.now();
     try {
       await api.verifyOtpSetup(code);
-      const endTime = performance.now();
-      console.log(
-        `OTP verification took ${(endTime - startTime).toFixed(0)}ms`
-      );
 
       // Update user state to reflect 2FA is now enabled
       const updatedUser = { ...user, otp_enabled: true };
@@ -54,16 +49,8 @@ const OtpSetupPage = () => {
       localStorage.setItem('playbook-user', JSON.stringify(updatedUser));
 
       toast.success('2FA enabled successfully!');
-      if (user?.role === 'super_admin') {
-        navigate('/superadmin');
-      } else {
-        navigate('/admin');
-      }
+      navigateAfterLogin(user, navigate);
     } catch (error) {
-      const endTime = performance.now();
-      console.log(
-        `OTP verification failed after ${(endTime - startTime).toFixed(0)}ms`
-      );
       toast.error(error.response?.data?.message || 'Invalid OTP code.');
       setToken('');
     } finally {
@@ -77,10 +64,10 @@ const OtpSetupPage = () => {
   };
 
   const handleTokenChange = (e) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    const value = e.target.value.replace(/\D/g, '').slice(0, OTP_LENGTH);
     setToken(value);
 
-    if (value.length === 6) {
+    if (value.length === OTP_LENGTH) {
       verifyOtp(value);
     }
   };
@@ -145,7 +132,7 @@ const OtpSetupPage = () => {
                 value={token}
                 onChange={handleTokenChange}
                 disabled={isVerifying || isLoading}
-                maxLength={6}
+                maxLength={OTP_LENGTH}
                 className='text-center text-lg tracking-[0.3em]'
               />
             </div>

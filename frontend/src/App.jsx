@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import Loader from './components/Loader';
+import ErrorBoundary from './components/ErrorBoundary';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import ProtectedRoute from './components/ProtectedRoute';
@@ -46,157 +47,159 @@ function App() {
   }
 
   return (
-    <AnimatePresence mode='wait'>
-      <Routes location={location} key={location.pathname}>
-        <Route
-          path='/'
-          element={
-            <PageLayout>
-              <HomePage />
-            </PageLayout>
-          }
-        />
-        <Route
-          path='/viewer/:id'
-          element={
-            <PageLayout>
-              <ViewerPage />
-            </PageLayout>
-          }
-        />
-        <Route
-          path='/login'
-          element={
-            user ? (
-              <Navigate to='/admin' replace />
-            ) : (
-              <PageLayout>
-                <LoginPage />
-              </PageLayout>
-            )
-          }
-        />
-        <Route
-          path='/signup'
-          element={
-            user ? (
-              <Navigate to='/admin' replace />
-            ) : (
-              <PageLayout>
-                <SignupPage />
-              </PageLayout>
-            )
-          }
-        />
-        <Route
-          path='/pending-approval'
-          element={
-            <PageLayout>
-              <PendingApprovalPage />
-            </PageLayout>
-          }
-        />
-        <Route
-          path='/setup-2fa'
-          element={
-            user ? (
-              <PageLayout>
-                <OtpSetupPage />
-              </PageLayout>
-            ) : (
-              <Navigate to='/login' replace />
-            )
-          }
-        />
-        <Route
-          path='/verify-2fa'
-          element={
-            <PageLayout>
-              <OtpVerifyPage />
-            </PageLayout>
-          }
-        />
-        <Route
-          path='/reset-password'
-          element={
-            <PageLayout>
-              <ResetPasswordPage />
-            </PageLayout>
-          }
-        />
-        <Route
-          path='/auth/callback/discord'
-          element={
-            <PageLayout>
-              <DiscordCallbackPage />
-            </PageLayout>
-          }
-        />
-        <Route
-          path='/auth/callback/google'
-          element={
-            <PageLayout>
-              <GoogleCallbackPage />
-            </PageLayout>
-          }
-        />
-
-        <Route
-          path='/admin'
-          element={
-            <ProtectedRoute role='admin'>
-              <AdminLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate to='dashboard' replace />} />
+    <ErrorBoundary>
+      <AnimatePresence mode='wait'>
+        <Routes location={location} key={location.pathname}>
           <Route
-            path='dashboard'
+            path='/'
             element={
               <PageLayout>
-                <AdminDashboard />
-              </PageLayout>
-            }
-          />
-        </Route>
-
-        <Route
-          path='/superadmin'
-          element={
-            <ProtectedRoute role='super_admin'>
-              <SuperAdminLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Navigate to='dashboard' replace />} />
-          <Route
-            path='dashboard'
-            element={
-              <PageLayout>
-                <SuperAdminDashboard />
+                <HomePage />
               </PageLayout>
             }
           />
           <Route
-            path='users'
+            path='/viewer/:id'
             element={
               <PageLayout>
-                <UserManagementPage />
+                <ViewerPage />
               </PageLayout>
             }
           />
-        </Route>
+          <Route
+            path='/login'
+            element={
+              user ? (
+                <Navigate to='/admin' replace />
+              ) : (
+                <PageLayout>
+                  <LoginPage />
+                </PageLayout>
+              )
+            }
+          />
+          <Route
+            path='/signup'
+            element={
+              user ? (
+                <Navigate to='/admin' replace />
+              ) : (
+                <PageLayout>
+                  <SignupPage />
+                </PageLayout>
+              )
+            }
+          />
+          <Route
+            path='/pending-approval'
+            element={
+              <PageLayout>
+                <PendingApprovalPage />
+              </PageLayout>
+            }
+          />
+          <Route
+            path='/setup-2fa'
+            element={
+              user ? (
+                <PageLayout>
+                  <OtpSetupPage />
+                </PageLayout>
+              ) : (
+                <Navigate to='/login' replace />
+              )
+            }
+          />
+          <Route
+            path='/verify-2fa'
+            element={
+              <PageLayout>
+                <OtpVerifyPage />
+              </PageLayout>
+            }
+          />
+          <Route
+            path='/reset-password'
+            element={
+              <PageLayout>
+                <ResetPasswordPage />
+              </PageLayout>
+            }
+          />
+          <Route
+            path='/auth/callback/discord'
+            element={
+              <PageLayout>
+                <DiscordCallbackPage />
+              </PageLayout>
+            }
+          />
+          <Route
+            path='/auth/callback/google'
+            element={
+              <PageLayout>
+                <GoogleCallbackPage />
+              </PageLayout>
+            }
+          />
 
-        <Route
-          path='*'
-          element={
-            <PageLayout>
-              <NotFoundPage />
-            </PageLayout>
-          }
-        />
-      </Routes>
-    </AnimatePresence>
+          <Route
+            path='/admin'
+            element={
+              <ProtectedRoute role='admin'>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to='dashboard' replace />} />
+            <Route
+              path='dashboard'
+              element={
+                <PageLayout>
+                  <AdminDashboard />
+                </PageLayout>
+              }
+            />
+          </Route>
+
+          <Route
+            path='/superadmin'
+            element={
+              <ProtectedRoute role='super_admin'>
+                <SuperAdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to='dashboard' replace />} />
+            <Route
+              path='dashboard'
+              element={
+                <PageLayout>
+                  <SuperAdminDashboard />
+                </PageLayout>
+              }
+            />
+            <Route
+              path='users'
+              element={
+                <PageLayout>
+                  <UserManagementPage />
+                </PageLayout>
+              }
+            />
+          </Route>
+
+          <Route
+            path='*'
+            element={
+              <PageLayout>
+                <NotFoundPage />
+              </PageLayout>
+            }
+          />
+        </Routes>
+      </AnimatePresence>
+    </ErrorBoundary>
   );
 }
 

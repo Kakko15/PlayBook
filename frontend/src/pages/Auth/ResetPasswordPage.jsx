@@ -6,9 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Logo from '@/components/Logo';
-import { Loader2, Eye, EyeOff, XCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 import PasswordValidationHints from '@/components/PasswordValidationHints';
-import { motion, AnimatePresence } from 'framer-motion';
+import PasswordConfirmInput from '@/components/PasswordConfirmInput';
+import { AnimatePresence } from 'framer-motion';
+import {
+  usePasswordValidation,
+  usePasswordMatch,
+} from '@/hooks/usePasswordValidation';
 
 const ResetPasswordPage = () => {
   const [searchParams] = useSearchParams();
@@ -22,40 +27,11 @@ const ResetPasswordPage = () => {
   const [isTokenValid, setIsTokenValid] = useState(false);
   const navigate = useNavigate();
 
-  const [passwordValidation, setPasswordValidation] = useState({
-    length: false,
-    lowercase: false,
-    uppercase: false,
-    number: false,
-    specialChar: false,
-  });
-
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-  const [matchStatus, setMatchStatus] = useState('idle');
 
-  useEffect(() => {
-    setPasswordValidation({
-      length: password.length >= 8,
-      lowercase: /[a-z]/.test(password),
-      uppercase: /[A-Z]/.test(password),
-      number: /[0-9]/.test(password),
-      specialChar: /[^A-Za-z0-9]/.test(password),
-    });
-  }, [password]);
-
-  const allRulesMet = Object.values(passwordValidation).every(Boolean);
-
-  useEffect(() => {
-    if (confirmPassword.length > 0 && allRulesMet) {
-      if (password === confirmPassword) {
-        setMatchStatus('matching');
-      } else {
-        setMatchStatus('mismatch');
-      }
-    } else {
-      setMatchStatus('idle');
-    }
-  }, [password, confirmPassword, allRulesMet]);
+  const { validationState: passwordValidation, allRulesMet } =
+    usePasswordValidation(password);
+  const matchStatus = usePasswordMatch(password, confirmPassword, allRulesMet);
 
   useEffect(() => {
     const validateToken = async () => {
@@ -162,7 +138,7 @@ const ResetPasswordPage = () => {
             </p>
             <form onSubmit={handleRequestSubmit} className='mt-10 space-y-6'>
               <div>
-                <Label htmlFor='email'>Email address</Label>
+                <Label htmlFor='email'>Email</Label>
                 <div className='mt-2'>
                   <Input
                     id='email'
@@ -262,52 +238,18 @@ const ResetPasswordPage = () => {
               </div>
               <div>
                 <Label htmlFor='confirmPassword'>Confirm New Password</Label>
-                <div className='relative mt-2'>
-                  <Input
+                <div className='mt-2'>
+                  <PasswordConfirmInput
                     id='confirmPassword'
                     name='confirmPassword'
-                    type={showPassword ? 'text' : 'password'}
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    showPassword={showPassword}
+                    onTogglePassword={() => setShowPassword(!showPassword)}
+                    matchStatus={matchStatus}
                     disabled={isLoading}
-                    className='pr-16'
                   />
-                  <AnimatePresence>
-                    {matchStatus === 'matching' && (
-                      <motion.div
-                        className='absolute inset-y-0 right-10 flex items-center'
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.5 }}
-                      >
-                        <CheckCircle2 size={20} className='text-green-600' />
-                      </motion.div>
-                    )}
-                    {matchStatus === 'mismatch' && (
-                      <motion.div
-                        className='absolute inset-y-0 right-10 flex items-center'
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.5 }}
-                      >
-                        <XCircle size={20} className='text-destructive' />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  <button
-                    type='button'
-                    tabIndex={-1}
-                    onClick={() => setShowPassword(!showPassword)}
-                    className='absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground'
-                    disabled={isLoading}
-                  >
-                    {showPassword ? (
-                      <EyeOff className='h-5 w-5' />
-                    ) : (
-                      <Eye className='h-5 w-5' />
-                    )}
-                  </button>
                 </div>
               </div>
               <div>
