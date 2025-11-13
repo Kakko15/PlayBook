@@ -8,13 +8,30 @@ import api from '@/lib/api';
 const GoogleCallbackPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { setUser, user } = useAuth();
 
   useEffect(() => {
+    if (user) {
+      const state = searchParams.get('state');
+      const stateData = state ? JSON.parse(decodeURIComponent(state)) : {};
+      const welcomeMessage =
+        stateData.from === 'signup'
+          ? `Welcome, ${user.name.split(' ')[0]}!`
+          : `Welcome back, ${user.name.split(' ')[0]}!`;
+
+      toast.success(welcomeMessage);
+
+      if (user.role === 'super_admin') {
+        navigate('/superadmin', { replace: true });
+      } else {
+        navigate('/admin', { replace: true });
+      }
+      return;
+    }
+
     const handleGoogleCallback = async () => {
       const code = searchParams.get('code');
       const error = searchParams.get('error');
-      const state = searchParams.get('state');
 
       if (error) {
         toast.error('Google authentication cancelled.');
@@ -49,19 +66,6 @@ const GoogleCallbackPage = () => {
           localStorage.setItem('playbook-user', JSON.stringify(data.user));
           api.setAuthToken(data.token);
           setUser(data.user);
-          
-          const stateData = state ? JSON.parse(decodeURIComponent(state)) : {};
-          const welcomeMessage = stateData.from === 'signup' 
-            ? `Welcome, ${data.user.name.split(' ')[0]}!`
-            : `Welcome back, ${data.user.name.split(' ')[0]}!`;
-          
-          toast.success(welcomeMessage);
-
-          if (data.user.role === 'super_admin') {
-            navigate('/superadmin', { replace: true });
-          } else {
-            navigate('/admin', { replace: true });
-          }
         }
       } catch (error) {
         toast.error(
@@ -71,8 +75,10 @@ const GoogleCallbackPage = () => {
       }
     };
 
-    handleGoogleCallback();
-  }, [searchParams, navigate, setUser]);
+    if (!user) {
+      handleGoogleCallback();
+    }
+  }, [searchParams, navigate, setUser, user]);
 
   return (
     <div className='flex min-h-screen items-center justify-center'>

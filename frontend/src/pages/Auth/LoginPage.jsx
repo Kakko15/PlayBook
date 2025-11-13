@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,9 +6,7 @@ import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
-import api from '@/lib/api';
-import { motion, AnimatePresence } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -18,7 +16,6 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from '@/components/ui/form';
 import AuthLayout from '@/components/AuthLayout';
 
@@ -38,7 +35,7 @@ const formSchema = z.object({
 const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { login, setUser } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { executeRecaptcha } = useGoogleReCaptcha();
@@ -47,7 +44,7 @@ const LoginPage = () => {
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    mode: 'onBlur',
+    mode: 'onSubmit',
     defaultValues: {
       email: '',
       password: '',
@@ -132,35 +129,12 @@ const LoginPage = () => {
           <FormField
             control={form.control}
             name='email'
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Email address</FormLabel>
                 <FormControl>
-                  <Input
-                    autoComplete='email'
-                    disabled={isLoading}
-                    {...field}
-                    className={
-                      fieldState.error
-                        ? 'border-destructive focus-visible:ring-destructive'
-                        : ''
-                    }
-                  />
+                  <Input autoComplete='email' disabled={isLoading} {...field} />
                 </FormControl>
-                <div className='h-5'>
-                  <AnimatePresence>
-                    {fieldState.error && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <FormMessage />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
               </FormItem>
             )}
           />
@@ -168,7 +142,7 @@ const LoginPage = () => {
           <FormField
             control={form.control}
             name='password'
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <div className='flex items-center justify-between'>
                   <FormLabel>Password</FormLabel>
@@ -187,11 +161,7 @@ const LoginPage = () => {
                       type={showPassword ? 'text' : 'password'}
                       autoComplete='current-password'
                       disabled={isLoading}
-                      className={cn(
-                        'pr-10',
-                        fieldState.error &&
-                          'border-destructive focus-visible:ring-destructive'
-                      )}
+                      className='pr-10'
                       {...field}
                     />
                     <button
@@ -209,20 +179,6 @@ const LoginPage = () => {
                     </button>
                   </div>
                 </FormControl>
-                <div className='h-5'>
-                  <AnimatePresence>
-                    {fieldState.error && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <FormMessage />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
               </FormItem>
             )}
           />

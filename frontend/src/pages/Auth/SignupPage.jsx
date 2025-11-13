@@ -10,7 +10,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { cn } from '@/lib/utils';
 import PasswordValidationHints from '@/components/PasswordValidationHints';
 import AuthLayout from '@/components/AuthLayout';
 
@@ -20,7 +19,6 @@ import {
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
 } from '@/components/ui/form';
 
 const passwordValidation = new RegExp(
@@ -69,8 +67,7 @@ const SignupPage = () => {
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    mode: 'onTouched',
-    reValidateMode: 'onChange',
+    mode: 'onSubmit',
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -177,7 +174,7 @@ const SignupPage = () => {
             <FormField
               control={form.control}
               name='firstName'
-              render={({ field, fieldState }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>First Name</FormLabel>
                   <FormControl>
@@ -185,34 +182,15 @@ const SignupPage = () => {
                       autoComplete='given-name'
                       disabled={isLoading}
                       {...field}
-                      className={
-                        fieldState.error
-                          ? 'border-destructive focus-visible:ring-destructive'
-                          : ''
-                      }
                     />
                   </FormControl>
-                  <div className='min-h-[1.25rem]'>
-                    <AnimatePresence>
-                      {fieldState.error && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -5 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <FormMessage />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
                 </FormItem>
               )}
             />
             <FormField
               control={form.control}
               name='lastName'
-              render={({ field, fieldState }) => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Last Name</FormLabel>
                   <FormControl>
@@ -220,27 +198,8 @@ const SignupPage = () => {
                       autoComplete='family-name'
                       disabled={isLoading}
                       {...field}
-                      className={
-                        fieldState.error
-                          ? 'border-destructive focus-visible:ring-destructive'
-                          : ''
-                      }
                     />
                   </FormControl>
-                  <div className='min-h-[1.25rem]'>
-                    <AnimatePresence>
-                      {fieldState.error && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -5 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <FormMessage />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
                 </FormItem>
               )}
             />
@@ -249,35 +208,12 @@ const SignupPage = () => {
           <FormField
             control={form.control}
             name='email'
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Email address</FormLabel>
                 <FormControl>
-                  <Input
-                    autoComplete='email'
-                    disabled={isLoading}
-                    {...field}
-                    className={
-                      fieldState.error
-                        ? 'border-destructive focus-visible:ring-destructive'
-                        : ''
-                    }
-                  />
+                  <Input autoComplete='email' disabled={isLoading} {...field} />
                 </FormControl>
-                <div className='min-h-[1.25rem]'>
-                  <AnimatePresence>
-                    {fieldState.error && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <FormMessage />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
               </FormItem>
             )}
           />
@@ -285,7 +221,7 @@ const SignupPage = () => {
           <FormField
             control={form.control}
             name='password'
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
@@ -294,11 +230,7 @@ const SignupPage = () => {
                       type={showPassword ? 'text' : 'password'}
                       autoComplete='new-password'
                       disabled={isLoading}
-                      className={cn(
-                        'pr-10',
-                        fieldState.error &&
-                          'border-destructive focus-visible:ring-destructive'
-                      )}
+                      className='pr-10'
                       {...field}
                       onFocus={() => setIsPasswordFocused(true)}
                       onBlur={() => {
@@ -323,23 +255,11 @@ const SignupPage = () => {
                 </FormControl>
                 <div className='min-h-[1.25rem] pt-2'>
                   <AnimatePresence mode='wait'>
-                    {isPasswordFocused ? (
+                    {isPasswordFocused && (
                       <PasswordValidationHints
                         key='hints'
                         validationState={passwordValidationState}
                       />
-                    ) : (
-                      fieldState.error && (
-                        <motion.div
-                          key='error'
-                          initial={{ opacity: 0, y: -5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -5 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <FormMessage />
-                        </motion.div>
-                      )
                     )}
                   </AnimatePresence>
                 </div>
@@ -350,7 +270,7 @@ const SignupPage = () => {
           <FormField
             control={form.control}
             name='confirmPassword'
-            render={({ field, fieldState }) => (
+            render={({ field }) => (
               <FormItem>
                 <FormLabel>Confirm Password</FormLabel>
                 <FormControl>
@@ -359,11 +279,7 @@ const SignupPage = () => {
                       type={showPassword ? 'text' : 'password'}
                       autoComplete='new-password'
                       disabled={isLoading}
-                      className={cn(
-                        'pr-16',
-                        fieldState.error &&
-                          'border-destructive focus-visible:ring-destructive'
-                      )}
+                      className='pr-16'
                       {...field}
                     />
                     <AnimatePresence>
@@ -403,20 +319,6 @@ const SignupPage = () => {
                     </button>
                   </div>
                 </FormControl>
-                <div className='min-h-[1.25rem]'>
-                  <AnimatePresence>
-                    {fieldState.error && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <FormMessage />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
               </FormItem>
             )}
           />

@@ -16,7 +16,7 @@ const OtpSetupPage = () => {
   const [token, setToken] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -25,7 +25,9 @@ const OtpSetupPage = () => {
         const data = await api.generateOtp();
         setSecret(data.secret);
         setQrCodeUrl(data.qrCodeUrl);
+        console.log('QR Code URL length:', data.qrCodeUrl?.length);
       } catch (error) {
+        console.error('OTP generation error:', error);
         toast.error('Failed to generate 2FA secret. Please refresh.');
       } finally {
         setIsLoading(false);
@@ -34,15 +36,23 @@ const OtpSetupPage = () => {
     generateSecret();
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (token.length !== 6) {
-      toast.error('Please enter a 6-digit code.');
-      return;
-    }
+  const verifyOtp = async (code) => {
+    if (code.length !== 6) return;
+
     setIsVerifying(true);
+    const startTime = performance.now();
     try {
-      await api.verifyOtpSetup(token);
+      await api.verifyOtpSetup(code);
+      const endTime = performance.now();
+      console.log(
+        `OTP verification took ${(endTime - startTime).toFixed(0)}ms`
+      );
+
+      // Update user state to reflect 2FA is now enabled
+      const updatedUser = { ...user, otp_enabled: true };
+      setUser(updatedUser);
+      localStorage.setItem('playbook-user', JSON.stringify(updatedUser));
+
       toast.success('2FA enabled successfully!');
       if (user?.role === 'super_admin') {
         navigate('/superadmin');
@@ -50,9 +60,28 @@ const OtpSetupPage = () => {
         navigate('/admin');
       }
     } catch (error) {
+      const endTime = performance.now();
+      console.log(
+        `OTP verification failed after ${(endTime - startTime).toFixed(0)}ms`
+      );
       toast.error(error.response?.data?.message || 'Invalid OTP code.');
+      setToken('');
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await verifyOtp(token);
+  };
+
+  const handleTokenChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setToken(value);
+
+    if (value.length === 6) {
+      verifyOtp(value);
     }
   };
 
@@ -77,11 +106,21 @@ const OtpSetupPage = () => {
             </div>
           ) : (
             <div className='flex flex-col items-center gap-4'>
-              <div className='rounded-lg bg-white p-4'>
-                <QRCode value={qrCodeUrl} size={176} />
-              </div>
+              {qrCodeUrl && qrCodeUrl.length < 2953 ? (
+                <div className='rounded-lg bg-white p-4'>
+                  <QRCode value={qrCodeUrl} size={200} level='L' />
+                </div>
+              ) : (
+                <div className='rounded-lg bg-muted p-8 text-center'>
+                  <p className='text-sm text-muted-foreground'>
+                    QR code unavailable. Please use the manual key below.
+                  </p>
+                </div>
+              )}
               <p className='text-sm text-muted-foreground'>
-                Or enter this key manually:
+                {qrCodeUrl && qrCodeUrl.length < 2953
+                  ? 'Or enter this key manually:'
+                  : 'Enter this key manually:'}
               </p>
               <code className='rounded-md bg-muted px-3 py-1 font-mono text-sm'>
                 {secret}
@@ -101,9 +140,10 @@ const OtpSetupPage = () => {
                 inputMode='numeric'
                 pattern='[0-9]*'
                 autoComplete='one-time-code'
+                autoFocus
                 required
                 value={token}
-                onChange={(e) => setToken(e.target.value)}
+                onChange={handleTokenChange}
                 disabled={isVerifying || isLoading}
                 maxLength={6}
                 className='text-center text-lg tracking-[0.3em]'
