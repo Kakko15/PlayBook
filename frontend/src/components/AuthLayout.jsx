@@ -3,25 +3,34 @@ import { motion } from 'framer-motion';
 import Logo from '@/components/Logo';
 
 const containerVariants = {
-  hidden: { opacity: 0 },
+  hidden: { opacity: 0, y: 30 },
   show: {
     opacity: 1,
+    y: 0,
     transition: {
-      staggerChildren: 0.06,
+      duration: 0.5,
+      ease: [0.4, 0, 0.2, 1],
+      staggerChildren: 0.1,
     },
   },
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
+  hidden: { opacity: 0, y: 20 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: [0.4, 0, 0.2, 1],
+    },
+  },
 };
 
 const AuthLayout = ({ children, title, description }) => {
   return (
     <div className='flex min-h-screen items-center justify-center bg-background p-4'>
       <motion.div
-        layoutId='auth-card-container'
         className='w-full max-w-md overflow-hidden rounded-2xl border border-outline-variant bg-surface'
         variants={containerVariants}
         initial='hidden'

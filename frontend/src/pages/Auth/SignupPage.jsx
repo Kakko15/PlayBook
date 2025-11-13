@@ -1,12 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import ReCAPTCHA from 'react-google-recaptcha';
 import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Eye, EyeOff, XCircle, CheckCircle2 } from 'lucide-react';
-import api from '@/lib/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -23,11 +22,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
-};
 
 const passwordValidation = new RegExp(
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/
@@ -59,9 +53,9 @@ const formSchema = z
 const SignupPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { signup, setUser } = useAuth();
+  const { signup } = useAuth();
   const navigate = useNavigate();
-  const { executeRecaptcha } = useGoogleReCaptcha();
+  const recaptchaRef = useRef(null);
 
   const [passwordValidationState, setPasswordValidationState] = useState({
     length: false,
@@ -75,7 +69,8 @@ const SignupPage = () => {
 
   const form = useForm({
     resolver: zodResolver(formSchema),
-    mode: 'onChange',
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -133,17 +128,17 @@ const SignupPage = () => {
   };
 
   const onSubmit = async (values) => {
-    setIsLoading(true);
+    const recaptchaToken = recaptchaRef.current?.getValue();
 
-    if (!executeRecaptcha) {
-      toast.error('reCAPTCHA not ready. Please try again.');
-      setIsLoading(false);
+    if (!recaptchaToken) {
+      toast.error('Please complete the reCAPTCHA verification.');
       return;
     }
 
+    setIsLoading(true);
+
     try {
       const name = `${values.firstName} ${values.lastName}`;
-      const recaptchaToken = await executeRecaptcha('signup');
       const data = await signup(
         name,
         values.email,
@@ -154,6 +149,7 @@ const SignupPage = () => {
       navigate('/pending-approval');
     } catch (error) {
       toast.error(error.response?.data?.message || 'An error occurred.');
+      recaptchaRef.current?.reset();
     } finally {
       setIsLoading(false);
     }
@@ -196,7 +192,7 @@ const SignupPage = () => {
                       }
                     />
                   </FormControl>
-                  <div className='h-5'>
+                  <div className='min-h-[1.25rem]'>
                     <AnimatePresence>
                       {fieldState.error && (
                         <motion.div
@@ -231,7 +227,7 @@ const SignupPage = () => {
                       }
                     />
                   </FormControl>
-                  <div className='h-5'>
+                  <div className='min-h-[1.25rem]'>
                     <AnimatePresence>
                       {fieldState.error && (
                         <motion.div
@@ -268,7 +264,7 @@ const SignupPage = () => {
                     }
                   />
                 </FormControl>
-                <div className='h-5'>
+                <div className='min-h-[1.25rem]'>
                   <AnimatePresence>
                     {fieldState.error && (
                       <motion.div
@@ -325,7 +321,7 @@ const SignupPage = () => {
                     </button>
                   </div>
                 </FormControl>
-                <div className='pt-2'>
+                <div className='min-h-[1.25rem] pt-2'>
                   <AnimatePresence mode='wait'>
                     {isPasswordFocused ? (
                       <PasswordValidationHints
@@ -333,16 +329,17 @@ const SignupPage = () => {
                         validationState={passwordValidationState}
                       />
                     ) : (
-                      <motion.div
-                        key='error'
-                        className='min-h-[1.25rem]'
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        {fieldState.error && <FormMessage />}
-                      </motion.div>
+                      fieldState.error && (
+                        <motion.div
+                          key='error'
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <FormMessage />
+                        </motion.div>
+                      )
                     )}
                   </AnimatePresence>
                 </div>
@@ -406,7 +403,7 @@ const SignupPage = () => {
                     </button>
                   </div>
                 </FormControl>
-                <div className='h-5'>
+                <div className='min-h-[1.25rem]'>
                   <AnimatePresence>
                     {fieldState.error && (
                       <motion.div
@@ -424,7 +421,17 @@ const SignupPage = () => {
             )}
           />
 
-          <motion.div variants={itemVariants} className='pt-2'>
+          <div className='flex justify-center pt-4'>
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={
+                import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
+                '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
+              }
+            />
+          </div>
+
+          <div className='pt-2'>
             <Button
               type='submit'
               className='w-full'
@@ -434,11 +441,11 @@ const SignupPage = () => {
               {isLoading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
               {isLoading ? 'Creating account...' : 'Create account'}
             </Button>
-          </motion.div>
+          </div>
         </form>
       </Form>
 
-      <motion.div variants={itemVariants} className='mt-8'>
+      <div className='mt-8'>
         <div className='relative'>
           <div
             className='absolute inset-0 flex items-center'
@@ -494,7 +501,7 @@ const SignupPage = () => {
             Discord
           </Button>
         </div>
-      </motion.div>
+      </div>
     </AuthLayout>
   );
 };

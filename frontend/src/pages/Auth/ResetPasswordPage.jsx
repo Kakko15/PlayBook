@@ -251,20 +251,11 @@ const ResetPasswordPage = () => {
                 </div>
                 <div className='pt-2'>
                   <AnimatePresence mode='wait'>
-                    {isPasswordFocused ? (
+                    {isPasswordFocused && (
                       <PasswordValidationHints
                         key='hints'
                         validationState={passwordValidation}
                       />
-                    ) : (
-                      <motion.div
-                        key='error'
-                        className='min-h-[1.25rem]'
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                      ></motion.div>
                     )}
                   </AnimatePresence>
                 </div>

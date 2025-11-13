@@ -6,12 +6,6 @@ import './index.css';
 import 'react-material-symbols/rounded';
 import { AuthProvider } from './contexts/AuthContext.jsx';
 import { Toaster } from 'react-hot-toast';
-import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3';
-
-const RECAPTCHA_SITE_KEY =
-  import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
-  'your-recaptcha-v3-site-key-from-env';
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter
     future={{
@@ -19,20 +13,18 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       v7_relativeSplatPath: true,
     }}
   >
-    <GoogleReCaptchaProvider reCaptchaKey={RECAPTCHA_SITE_KEY}>
-      <AuthProvider>
-        <App />
-        <Toaster
-          position='bottom-right'
-          toastOptions={{
-            style: {
-              background: 'hsl(var(--card))',
-              color: 'hsl(var(--foreground))',
-              border: '1px solid hsl(var(--border))',
-            },
-          }}
-        />
-      </AuthProvider>
-    </GoogleReCaptchaProvider>
+    <AuthProvider>
+      <App />
+      <Toaster
+        position='bottom-right'
+        toastOptions={{
+          style: {
+            background: 'hsl(var(--card))',
+            color: 'hsl(var(--foreground))',
+            border: '1px solid hsl(var(--border))',
+          },
+        }}
+      />
+    </AuthProvider>
   </BrowserRouter>
 );

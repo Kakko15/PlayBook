@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as LabelPrimitive from '@radix-ui/react-label';
 import { Slot } from '@radix-ui/react-slot';
 import { Controller, FormProvider, useFormContext } from 'react-hook-form';
+import { motion } from 'framer-motion';
 
 import { cn } from '@/lib/utils';
 import { Label } from '@/components/ui/label';
@@ -48,7 +49,7 @@ const FormItem = React.forwardRef(({ className, ...props }, ref) => {
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div ref={ref} className={cn('space-y-2', className)} {...props} />
+      <motion.div ref={ref} className={cn('space-y-2', className)} {...props} />
     </FormItemContext.Provider>
   );
 });
