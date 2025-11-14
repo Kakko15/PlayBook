@@ -8,9 +8,12 @@ import { containerVariants, itemVariants } from '@/lib/animations';
 
 const HomePage = () => {
   const carouselImages = [
-    'https://images.unsplash.com/photo-1579952363873-27f3bade9f55?auto=format&fit=crop&q=80&w=1935',
+    '/images/picbasketball.jpg',
     'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=2070',
+    '/images/picvolleyball.jpg',
     'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&q=80&w=2071',
+    '/images/picarchery.jpg',
+    '/images/picbaseball.jpg',
   ];
 
   return (
@@ -60,7 +63,7 @@ const HomePage = () => {
               className='mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start'
             >
               <Button asChild size='lg' className='w-full sm:w-auto'>
-                <Link to='/viewer/all'>
+                <Link to='/tournaments'>
                   View Tournaments
                   <ArrowRight className='ml-2 h-4 w-4' />
                 </Link>

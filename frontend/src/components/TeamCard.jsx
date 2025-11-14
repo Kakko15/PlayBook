@@ -5,22 +5,7 @@ import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 
 const TeamCard = ({ team, onEdit, onDelete, onManagePlayers }) => {
-  const [playerCount, setPlayerCount] = useState(0);
-  const [isLoadingCount, setIsLoadingCount] = useState(true);
-
-  useEffect(() => {
-    const fetchPlayerCount = async () => {
-      try {
-        const players = await api.getPlayers(team.id);
-        setPlayerCount(players.length);
-      } catch (error) {
-        console.error('Failed to fetch player count', error);
-      } finally {
-        setIsLoadingCount(false);
-      }
-    };
-    fetchPlayerCount();
-  }, [team.id]);
+  const playerCount = team.players?.[0]?.count || 0;
 
   return (
     <div
@@ -43,14 +28,8 @@ const TeamCard = ({ team, onEdit, onDelete, onManagePlayers }) => {
           <div>
             <h3 className='font-semibold text-foreground'>{team.name}</h3>
             <div className='flex items-center text-sm text-muted-foreground'>
-              {isLoadingCount ? (
-                <Loader2 className='h-4 w-4 animate-spin' />
-              ) : (
-                <>
-                  <Users className='mr-1.5 h-4 w-4' />
-                  {playerCount} Player{playerCount !== 1 ? 's' : ''}
-                </>
-              )}
+              <Users className='mr-1.5 h-4 w-4' />
+              {playerCount} Player{playerCount !== 1 ? 's' : ''}
             </div>
           </div>
         </div>

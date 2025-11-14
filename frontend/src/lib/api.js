@@ -11,9 +11,12 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Don't redirect to login if we're on OTP verification or password reset pages
       const currentPath = window.location.pathname;
-      const excludedPaths = ['/verify-2fa', '/reset-password'];
+      const excludedPaths = [
+        '/verify-2fa',
+        '/reset-password',
+        '/account-settings',
+      ];
       const isExcluded = excludedPaths.some((path) =>
         currentPath.includes(path)
       );
@@ -105,16 +108,64 @@ const api = {
     );
     return data;
   },
-  googleLogin: async (credential) => {
-    const { data } = await apiClient.post('/auth/oauth/google', { credential });
-    return data;
-  },
   googleOAuthLogin: async (code) => {
     const { data } = await apiClient.post('/auth/oauth/google', { code });
     return data;
   },
   discordLogin: async (code) => {
     const { data } = await apiClient.post('/auth/oauth/discord', { code });
+    return data;
+  },
+
+  getAccountDetails: async () => {
+    const { data } = await apiClient.get('/auth/account');
+    return data;
+  },
+  updateAccountDetails: async (updates) => {
+    const { data } = await apiClient.patch('/auth/account', updates);
+    return data;
+  },
+  updatePassword: async (passwords) => {
+    const { data } = await apiClient.put('/auth/password', passwords);
+    return data;
+  },
+  getProfile: async () => {
+    const { data } = await apiClient.get('/auth/profile');
+    return data;
+  },
+  updateProfile: async (profileData) => {
+    const { data } = await apiClient.patch('/auth/profile', profileData);
+    return data;
+  },
+  updateProfilePicture: async (imageBase64) => {
+    const { data } = await apiClient.post('/auth/profile/picture', {
+      imageBase64,
+    });
+    return data;
+  },
+  removeProfilePicture: async () => {
+    const { data } = await apiClient.delete('/auth/profile/picture');
+    return data;
+  },
+  detectFace: async (imageBase64) => {
+    const { data } = await apiClient.post('/auth/profile/detect-face', {
+      imageBase64,
+    });
+    return data;
+  },
+
+  createBackup: async () => {
+    const { data } = await apiClient.post('/superadmin/system/backup');
+    return data;
+  },
+  getBackups: async () => {
+    const { data } = await apiClient.get('/superadmin/system/backups');
+    return data;
+  },
+  restoreBackup: async (storagePath) => {
+    const { data } = await apiClient.post('/superadmin/system/restore', {
+      storagePath,
+    });
     return data;
   },
 
@@ -185,6 +236,103 @@ const api = {
   },
   deletePlayer: async (playerId) => {
     const { data } = await apiClient.delete(`/tournaments/players/${playerId}`);
+    return data;
+  },
+
+  generateSchedule: async (tournamentId) => {
+    const { data } = await apiClient.post(
+      `/tournaments/${tournamentId}/schedule/generate`
+    );
+    return data;
+  },
+  generatePlayoffBracket: async (tournamentId, numTeams) => {
+    const { data } = await apiClient.post(
+      `/tournaments/${tournamentId}/playoffs/generate`,
+      { numTeams }
+    );
+    return data;
+  },
+  getSchedule: async (tournamentId) => {
+    const { data } = await apiClient.get(
+      `/tournaments/${tournamentId}/schedule`
+    );
+    return data;
+  },
+  getStandings: async (tournamentId) => {
+    const { data } = await apiClient.get(
+      `/tournaments/${tournamentId}/standings`
+    );
+    return data;
+  },
+  getMatchDetails: async (matchId) => {
+    const { data } = await apiClient.get(`/tournaments/match/${matchId}`);
+    return data;
+  },
+  logMatchResult: async (matchId, matchData) => {
+    const { data } = await apiClient.put(
+      `/tournaments/match/${matchId}/log`,
+      matchData
+    );
+    return data;
+  },
+
+  getPublicTournaments: async () => {
+    const { data } = await apiClient.get('/public/tournaments');
+    return data;
+  },
+  getPublicTournamentDetails: async (tournamentId) => {
+    const { data } = await apiClient.get(`/public/tournament/${tournamentId}`);
+    return data;
+  },
+
+  makePick: async (match_id, predicted_winner_team_id) => {
+    const { data } = await apiClient.post('/predictions/make-pick', {
+      match_id,
+      predicted_winner_team_id,
+    });
+    return data;
+  },
+  getMyPicks: async (tournamentId) => {
+    const { data } = await apiClient.get(
+      `/predictions/${tournamentId}/my-picks`
+    );
+    return data;
+  },
+  getPickLeaderboard: async (tournamentId) => {
+    const { data } = await apiClient.get(
+      `/predictions/${tournamentId}/leaderboard`
+    );
+    return data;
+  },
+
+  trainArchetypeModel: async (game) => {
+    const { data } = await apiClient.post('/ds/train/archetypes', { game });
+    return data;
+  },
+  trainWinPredictor: async (coefficients) => {
+    const { data } = await apiClient.post('/ds/train/win-predictor', {
+      coefficients,
+    });
+    return data;
+  },
+  getSimilarPlayers: async (playerId, game) => {
+    const { data } = await apiClient.get(
+      `/ds/similar-players/${playerId}?game=${game}`
+    );
+    return data;
+  },
+  getMatchPrediction: async (matchId) => {
+    const { data } = await apiClient.get(`/ds/predict/match/${matchId}`);
+    return data;
+  },
+
+  getMatchPrediction: async (matchId) => {
+    const { data } = await apiClient.get(`/ds/predict/match/${matchId}`);
+    return data;
+  },
+
+  getGlobalAnalytics: async () => {
+    const { data } = await apiClient.get('/ds/global-analytics');
     return data;
   },
 };

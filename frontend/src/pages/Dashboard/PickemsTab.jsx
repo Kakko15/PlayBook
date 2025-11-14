@@ -1,0 +1,154 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import api from '@/lib/api';
+import toast from 'react-hot-toast';
+import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
+import PickemMatchCard from '@/components/PickemMatchCard';
+import Icon from '@/components/Icon';
+
+const PickemsTab = ({ tournamentId }) => {
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [matches, setMatches] = useState([]);
+  const [myPicks, setMyPicks] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  const { user } = useAuth();
+
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [boardData, scheduleData, picksData] = await Promise.all([
+        api.getPickLeaderboard(tournamentId),
+        api.getSchedule(tournamentId),
+        api.getMyPicks(tournamentId),
+      ]);
+
+      setLeaderboard(boardData);
+      setMatches(scheduleData);
+
+      const picksMap = picksData.reduce((acc, pick) => {
+        acc[pick.match_id] = pick;
+        return acc;
+      }, {});
+      setMyPicks(picksMap);
+    } catch (error) {
+      toast.error("Failed to load Pick'ems data.");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tournamentId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handlePickSuccess = (pick) => {
+    setMyPicks((prevPicks) => ({
+      ...prevPicks,
+      [pick.match_id]: pick,
+    }));
+    toast.success('Pick saved!');
+  };
+
+  if (isLoading) {
+    return (
+      <div className='flex h-64 w-full items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
+  }
+
+  return (
+    <div className='grid grid-cols-1 gap-8 lg:grid-cols-3'>
+      <div className='space-y-6 lg:col-span-2'>
+        <h2 className='text-2xl font-semibold text-foreground'>
+          Make Your Picks
+        </h2>
+        <div className='space-y-4'>
+          {matches.length === 0 ? (
+            <div className='flex h-48 flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-card'>
+              <Icon
+                name='checklist'
+                className='h-12 w-12 text-muted-foreground'
+              />
+              <h3 className='mt-4 text-xl font-semibold text-foreground'>
+                No Matches Available
+              </h3>
+              <p className='mt-2 text-muted-foreground'>
+                The schedule hasn't been generated yet.
+              </p>
+            </div>
+          ) : (
+            matches.map((match) => (
+              <PickemMatchCard
+                key={match.id}
+                match={match}
+                myPick={myPicks[match.id]}
+                onPickSuccess={handlePickSuccess}
+              />
+            ))
+          )}
+        </div>
+      </div>
+
+      <div className='lg:col-span-1'>
+        <h2 className='text-2xl font-semibold text-foreground'>Leaderboard</h2>
+        <div className='mt-6 overflow-hidden rounded-lg border border-border'>
+          <table className='w-full'>
+            <thead className='bg-surface-variant'>
+              <tr>
+                <th className='px-4 py-3 text-left font-medium text-on-surface-variant'>
+                  Rank
+                </th>
+                <th className='px-4 py-3 text-left font-medium text-on-surface-variant'>
+                  User
+                </th>
+                <th className='px-4 py-3 text-left font-medium text-on-surface-variant'>
+                  Picks
+                </th>
+                <th className='px-4 py-3 text-right font-medium text-on-surface-variant'>
+                  Points
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {leaderboard.map((entry, index) => (
+                <tr
+                  key={entry.user_id}
+                  className={cn(
+                    'border-b border-border last:border-b-0',
+                    entry.user_id === user.id
+                      ? 'bg-primary-container'
+                      : 'hover:bg-muted/50'
+                  )}
+                >
+                  <td className='px-4 py-3 font-medium text-foreground'>
+                    {index + 1}
+                  </td>
+                  <td className='px-4 py-3 font-medium text-foreground'>
+                    {entry.name}
+                  </td>
+                  <td className='px-4 py-3 text-muted-foreground'>
+                    {entry.correct_picks}
+                  </td>
+                  <td className='px-4 py-3 text-right font-bold text-primary'>
+                    {entry.total_points}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {leaderboard.length === 0 && (
+            <div className='p-4 text-center text-muted-foreground'>
+              No predictions made yet.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PickemsTab;

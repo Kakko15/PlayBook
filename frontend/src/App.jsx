@@ -1,32 +1,39 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
-import Loader from './components/Loader';
-import ErrorBoundary from './components/ErrorBoundary';
+import { useAuth } from '@/hooks/useAuth';
+import Loader from '@/components/Loader';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { AnimatePresence, motion } from 'framer-motion';
 
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
-import HomePage from './pages/Public/HomePage';
-import ViewerPage from './pages/Public/ViewerPage';
+import HomePage from '@/pages/Public/HomePage';
+import PublicTournamentListPage from '@/pages/Public/PublicTournamentListPage';
+import PublicTournamentViewerPage from '@/pages/Public/PublicTournamentViewerPage';
 
-import LoginPage from './pages/Auth/LoginPage';
-import SignupPage from './pages/Auth/SignupPage';
-import PendingApprovalPage from './pages/Auth/PendingApprovalPage';
-import OtpSetupPage from './pages/Auth/OtpSetupPage';
-import OtpVerifyPage from './pages/Auth/OtpVerifyPage';
-import ResetPasswordPage from './pages/Auth/ResetPasswordPage';
-import DiscordCallbackPage from './pages/Auth/DiscordCallbackPage';
-import GoogleCallbackPage from './pages/Auth/GoogleCallbackPage';
+import LoginPage from '@/pages/Auth/LoginPage';
+import SignupPage from '@/pages/Auth/SignupPage';
+import PendingApprovalPage from '@/pages/Auth/PendingApprovalPage';
+import OtpSetupPage from '@/pages/Auth/OtpSetupPage';
+import OtpVerifyPage from '@/pages/Auth/OtpVerifyPage';
+import ResetPasswordPage from '@/pages/Auth/ResetPasswordPage';
+import DiscordCallbackPage from '@/pages/Auth/DiscordCallbackPage';
+import GoogleCallbackPage from '@/pages/Auth/GoogleCallbackPage';
 
-import AdminLayout from './pages/Dashboard/AdminLayout';
-import AdminDashboard from './pages/Dashboard/AdminDashboard';
-import TournamentWorkspace from './pages/Dashboard/TournamentWorkspace';
+import AdminLayout from '@/pages/Dashboard/AdminLayout';
+import AdminDashboard from '@/pages/Dashboard/AdminDashboard';
+import TournamentWorkspace from '@/pages/Dashboard/TournamentWorkspace';
 
-import SuperAdminLayout from './pages/SuperAdmin/SuperAdminLayout';
-import SuperAdminDashboard from './pages/SuperAdmin/SuperAdminDashboard';
-import UserManagementPage from './pages/SuperAdmin/UserManagementPage';
+import SuperAdminLayout from '@/pages/SuperAdmin/SuperAdminLayout';
+import SuperAdminDashboard from '@/pages/SuperAdmin/SuperAdminDashboard';
+import UserManagementPage from '@/pages/SuperAdmin/UserManagementPage';
+import SystemManagementPage from '@/pages/SuperAdmin/SystemManagementPage';
+import AnalyticsPage from '@/pages/SuperAdmin/AnalyticsPage';
 
-import NotFoundPage from './pages/NotFoundPage';
+import AccountSettingsPage from '@/pages/Account/AccountSettingsPage';
+import MyAccountTab from '@/pages/Account/MyAccountTab';
+import UserProfileTab from '@/pages/Account/UserProfileTab';
+
+import NotFoundPage from '@/pages/NotFoundPage';
 
 const PageLayout = ({ children }) => (
   <motion.div
@@ -60,13 +67,22 @@ function App() {
             }
           />
           <Route
-            path='/viewer/:id'
+            path='/tournaments'
             element={
               <PageLayout>
-                <ViewerPage />
+                <PublicTournamentListPage />
               </PageLayout>
             }
           />
+          <Route
+            path='/tournaments/:id'
+            element={
+              <PageLayout>
+                <PublicTournamentViewerPage />
+              </PageLayout>
+            }
+          />
+
           <Route
             path='/login'
             element={
@@ -196,6 +212,35 @@ function App() {
                 </PageLayout>
               }
             />
+            <Route
+              path='system'
+              element={
+                <PageLayout>
+                  <SystemManagementPage />
+                </PageLayout>
+              }
+            />
+            <Route
+              path='analytics'
+              element={
+                <PageLayout>
+                  <AnalyticsPage />
+                </PageLayout>
+              }
+            />
+          </Route>
+
+          <Route
+            path='/account-settings'
+            element={
+              <ProtectedRoute>
+                <AccountSettingsPage />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to='my-account' replace />} />
+            <Route path='my-account' element={<MyAccountTab />} />
+            <Route path='profile' element={<UserProfileTab />} />
           </Route>
 
           <Route

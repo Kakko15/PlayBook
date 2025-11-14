@@ -5,7 +5,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 import authRoutes from "./routes/authRoutes.js";
 import superAdminRoutes from "./routes/superAdminRoutes.js";
-import tournamentRoutes from "./routes/tournamentRoutes.js"; // Import new routes
+import tournamentRoutes from "./routes/tournamentRoutes.js";
+import publicRoutes from "./routes/publicRoutes.js";
+import predictionRoutes from "./routes/predictionRoutes.js";
+import dataScienceRoutes from "./routes/dataScienceRoutes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,7 +30,10 @@ app.get("/api", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/superadmin", superAdminRoutes);
-app.use("/api/tournaments", tournamentRoutes); // Use new routes
+app.use("/api/tournaments", tournamentRoutes);
+app.use("/api/public", publicRoutes);
+app.use("/api/predictions", predictionRoutes);
+app.use("/api/ds", dataScienceRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });

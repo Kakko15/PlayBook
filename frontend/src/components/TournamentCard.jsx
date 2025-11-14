@@ -14,7 +14,7 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
 };
 
-const TournamentCard = ({ tournament }) => {
+const TournamentCard = ({ tournament, isPublic = false }) => {
   const navigate = useNavigate();
 
   if (!tournament) return null;
@@ -25,7 +25,10 @@ const TournamentCard = ({ tournament }) => {
   const dateRange = formatDateRange(tournament.start_date, tournament.end_date);
 
   const handleClick = () => {
-    navigate(`/admin/tournament/${tournament.id}`);
+    const path = isPublic
+      ? `/tournaments/${tournament.id}`
+      : `/admin/tournament/${tournament.id}`;
+    navigate(path);
   };
 
   const onCardAction = (e) => {
@@ -48,14 +51,16 @@ const TournamentCard = ({ tournament }) => {
       >
         {gameDetails.icon}
 
-        <Button
-          variant='ghost'
-          size='icon'
-          className='absolute right-3 top-3 h-9 w-9 scale-[0.8] rounded-full bg-white/70 text-black opacity-0 transition-[opacity,transform] duration-200 ease-out hover:scale-100 hover:bg-[#fff] group-hover:scale-100 group-hover:opacity-100'
-          onClick={onCardAction}
-        >
-          <MoreVertical className='h-5 w-5' />
-        </Button>
+        {!isPublic && (
+          <Button
+            variant='ghost'
+            size='icon'
+            className='absolute right-3 top-3 h-9 w-9 scale-[0.8] rounded-full bg-white/70 text-black opacity-0 transition-[opacity,transform] duration-200 ease-out hover:scale-100 hover:bg-[#fff] group-hover:scale-100 group-hover:opacity-100'
+            onClick={onCardAction}
+          >
+            <MoreVertical className='h-5 w-5' />
+          </Button>
+        )}
       </div>
 
       <div className='space-y-3 bg-card p-4'>
