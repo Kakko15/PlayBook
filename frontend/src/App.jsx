@@ -21,6 +21,7 @@ import GoogleCallbackPage from '@/pages/Auth/GoogleCallbackPage';
 
 import AdminLayout from '@/pages/Dashboard/AdminLayout';
 import AdminDashboard from '@/pages/Dashboard/AdminDashboard';
+import TournamentListPage from '@/pages/Dashboard/TournamentListPage';
 import TournamentWorkspace from '@/pages/Dashboard/TournamentWorkspace';
 
 import SuperAdminLayout from '@/pages/SuperAdmin/SuperAdminLayout';
@@ -169,22 +170,9 @@ function App() {
             }
           >
             <Route index element={<Navigate to='dashboard' replace />} />
-            <Route
-              path='dashboard'
-              element={
-                <PageLayout>
-                  <AdminDashboard />
-                </PageLayout>
-              }
-            />
-            <Route
-              path='tournament/:id'
-              element={
-                <PageLayout>
-                  <TournamentWorkspace />
-                </PageLayout>
-              }
-            />
+            <Route path='dashboard' element={<AdminDashboard />} />
+            <Route path='tournaments' element={<TournamentListPage />} />
+            <Route path='tournament/:id' element={<TournamentWorkspace />} />
           </Route>
 
           <Route
@@ -196,38 +184,10 @@ function App() {
             }
           >
             <Route index element={<Navigate to='dashboard' replace />} />
-            <Route
-              path='dashboard'
-              element={
-                <PageLayout>
-                  <SuperAdminDashboard />
-                </PageLayout>
-              }
-            />
-            <Route
-              path='users'
-              element={
-                <PageLayout>
-                  <UserManagementPage />
-                </PageLayout>
-              }
-            />
-            <Route
-              path='system'
-              element={
-                <PageLayout>
-                  <SystemManagementPage />
-                </PageLayout>
-              }
-            />
-            <Route
-              path='analytics'
-              element={
-                <PageLayout>
-                  <AnalyticsPage />
-                </PageLayout>
-              }
-            />
+            <Route path='dashboard' element={<SuperAdminDashboard />} />
+            <Route path='users' element={<UserManagementPage />} />
+            <Route path='system' element={<SystemManagementPage />} />
+            <Route path='analytics' element={<AnalyticsPage />} />
           </Route>
 
           <Route

@@ -1,8 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { Reorder, useDragControls } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { MoreVertical, CalendarDays, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 import {
   getGameDetails,
   formatDateRange,
@@ -11,11 +12,17 @@ import {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: 'tween', duration: 0.3, ease: [0.4, 0, 0.2, 1] },
+  },
 };
 
-const TournamentCard = ({ tournament, isPublic = false }) => {
+const TournamentCard = ({ tournament, isPublic = false, className }) => {
   const navigate = useNavigate();
+  const dragControls = useDragControls();
+  const [isDragging, setIsDragging] = useState(false);
 
   if (!tournament) return null;
 
@@ -25,6 +32,7 @@ const TournamentCard = ({ tournament, isPublic = false }) => {
   const dateRange = formatDateRange(tournament.start_date, tournament.end_date);
 
   const handleClick = () => {
+    if (isDragging) return;
     const path = isPublic
       ? `/tournaments/${tournament.id}`
       : `/admin/tournament/${tournament.id}`;
@@ -36,12 +44,52 @@ const TournamentCard = ({ tournament, isPublic = false }) => {
     console.log('Card action clicked');
   };
 
+  const handlePointerDown = (e) => {
+    if (e.target.closest('button') || e.target.closest('a')) return;
+    dragControls.start(e);
+  };
+
+  const handleDragStart = () => {
+    setIsDragging(true);
+    document.body.classList.add('is-dragging');
+  };
+
+  const handleDragEnd = () => {
+    document.body.classList.remove('is-dragging');
+    setTimeout(() => setIsDragging(false), 0);
+  };
+
   return (
-    <motion.div
-      layoutId={`tournament-card-${tournament.id}`}
+    <Reorder.Item
+      value={tournament}
       variants={itemVariants}
       onClick={handleClick}
-      className='group cursor-pointer overflow-hidden rounded-lg shadow-lg transition-all duration-300 ease-out hover:shadow-2xl'
+      onPointerDown={handlePointerDown}
+      dragListener={false}
+      dragControls={dragControls}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      layout
+      transition={{
+        layout: {
+          type: 'tween',
+          duration: 0.25,
+          ease: [0.4, 0, 0.2, 1],
+        },
+      }}
+      whileDrag={{
+        scale: 1.05,
+        cursor: 'grabbing',
+        zIndex: 10,
+        boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)',
+        transition: {
+          duration: 0.15,
+        },
+      }}
+      className={cn(
+        'group cursor-grab select-none overflow-hidden rounded-lg bg-card shadow-lg transition-shadow duration-300 ease-out hover:shadow-2xl',
+        className
+      )}
     >
       <div
         className={cn(
@@ -93,7 +141,7 @@ const TournamentCard = ({ tournament, isPublic = false }) => {
           <span>{dateRange}</span>
         </div>
       </div>
-    </motion.div>
+    </Reorder.Item>
   );
 };
 

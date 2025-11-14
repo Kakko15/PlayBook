@@ -37,7 +37,7 @@ const TournamentWorkspace = () => {
       setTournament(data);
     } catch (error) {
       toast.error('Failed to fetch tournament details.');
-      navigate('/admin/dashboard');
+      navigate('/admin/tournaments');
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +71,7 @@ const TournamentWorkspace = () => {
           <Button
             variant='ghost'
             size='icon'
-            onClick={() => navigate('/admin/dashboard')}
+            onClick={() => navigate('/admin/tournaments')}
           >
             <Icon name='arrow_back' />
           </Button>

@@ -123,22 +123,15 @@ export const signup = async (req, res) => {
 };
 
 export const login = async (req, res) => {
-  const { email, password, recaptchaToken } = req.body;
+  const { email, password } = req.body;
 
-  if (!email || !password || !recaptchaToken) {
+  if (!email || !password) {
     return res
       .status(400)
-      .json({ message: "Email, password, and reCAPTCHA are required." });
+      .json({ message: "Email and password are required." });
   }
 
   try {
-    const isHuman = await verifyRecaptcha(recaptchaToken);
-    if (!isHuman) {
-      return res
-        .status(403)
-        .json({ message: "reCAPTCHA verification failed." });
-    }
-
     const { data: user, error: findError } = await supabase
       .from("users")
       .select("*")

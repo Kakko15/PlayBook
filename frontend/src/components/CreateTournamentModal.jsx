@@ -40,6 +40,12 @@ const formSchema = z.object({
   }),
 });
 
+const gameOptions = {
+  basketball: { label: 'Basketball', icon: '/images/basketball_logo.png' },
+  valorant: { label: 'Valorant', icon: '/images/valorant_logo.png' },
+  mlbb: { label: 'Mobile Legends', icon: '/images/ml_logo.png' },
+};
+
 const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -113,18 +119,56 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
                   <FormLabel>Game</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                     disabled={isLoading}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder='Select a game' />
+                        {field.value ? (
+                          <div className='flex items-center gap-2'>
+                            <img
+                              src={gameOptions[field.value].icon}
+                              alt={gameOptions[field.value].label}
+                              className='h-5 w-5'
+                            />
+                            <span>{gameOptions[field.value].label}</span>
+                          </div>
+                        ) : (
+                          <SelectValue placeholder='Select a game' />
+                        )}
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value='basketball'>Basketball</SelectItem>
-                      <SelectItem value='valorant'>Valorant</SelectItem>
-                      <SelectItem value='mlbb'>Mobile Legends</SelectItem>
+                      <SelectItem value='basketball'>
+                        <div className='flex items-center gap-3'>
+                          <img
+                            src='/images/basketball_logo.png'
+                            alt='Basketball'
+                            className='h-6 w-6'
+                          />
+                          <span>Basketball</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value='valorant'>
+                        <div className='flex items-center gap-3'>
+                          <img
+                            src='/images/valorant_logo.png'
+                            alt='Valorant'
+                            className='h-6 w-6'
+                          />
+                          <span>Valorant</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value='mlbb'>
+                        <div className='flex items-center gap-3'>
+                          <img
+                            src='/images/ml_logo.png'
+                            alt='Mobile Legends'
+                            className='h-6 w-6'
+                          />
+                          <span>Mobile Legends</span>
+                        </div>
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

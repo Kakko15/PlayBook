@@ -46,11 +46,10 @@ if (token) {
 
 const api = {
   setAuthToken,
-  login: async (email, password, recaptchaToken) => {
+  login: async (email, password) => {
     const { data } = await apiClient.post('/auth/login', {
       email,
       password,
-      recaptchaToken,
     });
     return data;
   },

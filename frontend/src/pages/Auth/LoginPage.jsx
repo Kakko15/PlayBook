@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
@@ -38,7 +37,6 @@ const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { executeRecaptcha } = useGoogleReCaptcha();
 
   const from = location.state?.from?.pathname || '/admin';
 
@@ -55,19 +53,8 @@ const LoginPage = () => {
   const onSubmit = async (values) => {
     setIsLoading(true);
 
-    if (!executeRecaptcha) {
-      toast.error('reCAPTCHA not ready. Please try again.');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      const recaptchaToken = await executeRecaptcha('login');
-      const { otpRequired, user } = await login(
-        values.email,
-        values.password,
-        recaptchaToken
-      );
+      const { otpRequired, user } = await login(values.email, values.password);
 
       if (otpRequired) {
         toast.success('Login successful. Please verify your 2FA code.');
@@ -155,7 +142,7 @@ const LoginPage = () => {
                         type='button'
                         tabIndex={-1}
                         onClick={() => setShowPassword(!showPassword)}
-                        className='text-on-surface-variant absolute inset-y-0 right-0 flex items-center pr-3'
+                        className='absolute inset-y-0 right-0 flex items-center pr-3 text-on-surface-variant'
                         disabled={isLoading}
                       >
                         {showPassword ? (

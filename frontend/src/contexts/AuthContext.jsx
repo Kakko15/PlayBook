@@ -26,8 +26,8 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email, password, recaptchaToken) => {
-    const data = await api.login(email, password, recaptchaToken);
+  const login = async (email, password) => {
+    const data = await api.login(email, password);
 
     if (data.otpRequired) {
       sessionStorage.setItem('playbook-otp-email', email);

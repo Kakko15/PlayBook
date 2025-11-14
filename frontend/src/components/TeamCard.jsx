@@ -1,56 +1,112 @@
-import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Users, Edit, Trash2, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { motion, Reorder } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import api from '@/lib/api';
+import { MoreVertical, CalendarDays, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  getGameDetails,
+  formatDateRange,
+  getStatus,
+} from '@/lib/tournamentUtils.jsx';
+import { useState } from 'react';
 
-const TeamCard = ({ team, onEdit, onDelete, onManagePlayers }) => {
-  const playerCount = team.players?.[0]?.count || 0;
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
+};
+
+const TournamentCard = ({ tournament, isPublic = false }) => {
+  const navigate = useNavigate();
+  const [isDragging, setIsDragging] = useState(false);
+
+  if (!tournament) return null;
+
+  const gameDetails = getGameDetails(tournament.game);
+  const teamCount = tournament.teams?.[0]?.count || 0;
+  const status = getStatus(tournament.start_date);
+  const dateRange = formatDateRange(tournament.start_date, tournament.end_date);
+
+  const handleClick = () => {
+    if (isDragging) return;
+    const path = isPublic
+      ? `/tournaments/${tournament.id}`
+      : `/admin/tournament/${tournament.id}`;
+    navigate(path);
+  };
+
+  const onCardAction = (e) => {
+    e.stopPropagation();
+    console.log('Card action clicked');
+  };
 
   return (
-    <div
-      className={cn(
-        'group relative rounded-lg border border-border bg-card p-4 transition-all hover:shadow-sm'
-      )}
+    <Reorder.Item
+      value={tournament}
+      variants={itemVariants}
+      onClick={handleClick}
+      onDragStart={() => setIsDragging(true)}
+      onDragEnd={() => setTimeout(() => setIsDragging(false), 0)}
+      whileDrag={{
+        scale: 1.05,
+        cursor: 'grabbing',
+        zIndex: 10,
+        boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)',
+      }}
+      // CRITICAL FIX: w-full and primary styling applied directly here
+      className='group w-full cursor-grab overflow-hidden rounded-lg bg-card shadow-lg transition-all duration-300 ease-out hover:shadow-2xl'
     >
-      <div className='flex items-center justify-between'>
-        <div className='flex items-center gap-4'>
-          <div className='flex h-12 w-12 items-center justify-center rounded-lg bg-secondary-container'>
-            <img
-              src={team.logo_url || `https://avatar.vercel.sh/${team.name}.png`}
-              alt={`${team.name} logo`}
-              className='h-8 w-8 rounded-full object-cover'
-              onError={(e) => {
-                e.currentTarget.src = `https://avatar.vercel.sh/${team.name}.png`;
-              }}
-            />
+      <div
+        className={cn(
+          'relative flex h-32 items-center justify-center p-4',
+          gameDetails.bgColor
+        )}
+      >
+        {gameDetails.icon}
+
+        {!isPublic && (
+          <Button
+            variant='ghost'
+            size='icon'
+            className='absolute right-3 top-3 h-9 w-9 scale-[0.8] rounded-full bg-white/70 text-black opacity-0 transition-[opacity,transform] duration-200 ease-out hover:scale-100 hover:bg-[#fff] group-hover:scale-100 group-hover:opacity-100'
+            onClick={onCardAction}
+          >
+            <MoreVertical className='h-5 w-5' />
+          </Button>
+        )}
+      </div>
+
+      <div className='space-y-3 bg-card p-4'>
+        <h3
+          className='truncate font-sans text-xl font-bold text-foreground'
+          title={tournament.name}
+        >
+          {tournament.name}
+        </h3>
+
+        <div className='flex items-center justify-between text-sm'>
+          <div className='flex items-center text-muted-foreground'>
+            <Users className='mr-2 h-4 w-4' />
+            <span>
+              {teamCount} team{teamCount !== 1 ? 's' : ''}
+            </span>
           </div>
-          <div>
-            <h3 className='font-semibold text-foreground'>{team.name}</h3>
-            <div className='flex items-center text-sm text-muted-foreground'>
-              <Users className='mr-1.5 h-4 w-4' />
-              {playerCount} Player{playerCount !== 1 ? 's' : ''}
-            </div>
-          </div>
+          <span
+            className={cn(
+              'rounded-full px-2.5 py-0.5 text-xs font-medium',
+              status.color
+            )}
+          >
+            {status.text}
+          </span>
         </div>
-        <div className='flex gap-2'>
-          <Button variant='ghost' size='icon' onClick={() => onEdit(team)}>
-            <Edit className='h-4 w-4' />
-            <span className='sr-only'>Edit</span>
-          </Button>
-          <Button variant='ghost' size='icon' onClick={() => onDelete(team)}>
-            <Trash2 className='h-4 w-4 text-destructive' />
-            <span className='sr-only'>Delete</span>
-          </Button>
+
+        <div className='flex items-center text-sm text-muted-foreground'>
+          <CalendarDays className='mr-2 h-4 w-4' />
+          <span>{dateRange}</span>
         </div>
       </div>
-      <div
-        className='absolute inset-0 cursor-pointer rounded-lg'
-        onClick={() => onManagePlayers(team)}
-        title={`Manage ${team.name} Roster`}
-      />
-    </div>
+    </Reorder.Item>
   );
 };
 
-export default TeamCard;
+export default TournamentCard;

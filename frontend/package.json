@@ -32,7 +32,6 @@
     "react-avatar-editor": "^13.0.2",
     "react-dom": "^18.3.1",
     "react-google-recaptcha": "^3.1.0",
-    "react-google-recaptcha-v3": "^1.10.1",
     "react-hook-form": "^7.66.0",
     "react-hot-toast": "^2.4.1",
     "react-material-symbols": "^4.4.0",
