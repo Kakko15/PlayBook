@@ -2,7 +2,7 @@ import rateLimit from "express-rate-limit";
 
 export const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 100,
   message: "Too many requests from this IP, please try again after 15 minutes.",
   standardHeaders: true,
   legacyHeaders: false,
@@ -46,9 +46,17 @@ export const otpLimiter = rateLimit({
   skipSuccessfulRequests: true,
 });
 
+export const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: "Too many file upload requests, please try again after 15 minutes.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export const defaultLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 50,
   message: "Too many requests, please try again after 15 minutes.",
   standardHeaders: true,
   legacyHeaders: false,

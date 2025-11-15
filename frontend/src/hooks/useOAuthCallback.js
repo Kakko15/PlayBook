@@ -9,19 +9,16 @@ import {
   navigateAfterLogin,
 } from '@/lib/authUtils';
 
-/**
- * Custom hook for handling OAuth callbacks
- * @param {Function} oauthApiCall - API function to call (e.g., api.googleOAuthLogin)
- * @param {string} providerName - Name of OAuth provider for error messages
- * @returns {Object} Loading state
- */
 export const useOAuthCallback = (oauthApiCall, providerName = 'OAuth') => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { setUser, user } = useAuth();
+  const { setUser, user, loading } = useAuth();
 
   useEffect(() => {
-    // If user is already authenticated, redirect to dashboard
+    if (loading) {
+      return;
+    }
+
     if (user) {
       const state = searchParams.get('state');
       const stateData = state ? JSON.parse(decodeURIComponent(state)) : {};
@@ -54,14 +51,12 @@ export const useOAuthCallback = (oauthApiCall, providerName = 'OAuth') => {
       try {
         const data = await oauthApiCall(code);
 
-        // Handle pending approval
         if (data.requiresApproval) {
           toast.success(data.message);
           navigate('/pending-approval');
           return;
         }
 
-        // Handle OTP requirement
         if (data.otpRequired) {
           sessionStorage.setItem('playbook-otp-email', data.email);
           toast.success('Please verify your 2FA code.');
@@ -69,7 +64,6 @@ export const useOAuthCallback = (oauthApiCall, providerName = 'OAuth') => {
           return;
         }
 
-        // Handle successful login
         if (data.token && data.user) {
           storeAuthData(data.token, data.user, api.setAuthToken);
           setUser(data.user);
@@ -88,7 +82,15 @@ export const useOAuthCallback = (oauthApiCall, providerName = 'OAuth') => {
     if (!user) {
       handleCallback();
     }
-  }, [searchParams, navigate, setUser, user, oauthApiCall, providerName]);
+  }, [
+    searchParams,
+    navigate,
+    setUser,
+    user,
+    oauthApiCall,
+    providerName,
+    loading,
+  ]);
 
-  return { loading: true };
+  return { loading: loading };
 };

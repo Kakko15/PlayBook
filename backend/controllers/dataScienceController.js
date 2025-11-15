@@ -1,6 +1,6 @@
 import supabase from "../supabaseClient.js";
 
-export const getGlobalAnalytics = async (req, res) => {
+export const getGlobalAnalytics = async (req, res, next) => {
   try {
     const { data: archetypes, error: archetypeError } = await supabase
       .from("players")
@@ -8,7 +8,7 @@ export const getGlobalAnalytics = async (req, res) => {
       .neq("archetype", null)
       .groupBy("game, archetype");
 
-    if (archetypeError) throw archetypeError;
+    if (archetypeError) return next(archetypeError);
 
     const { data: model, error: modelError } = await supabase
       .from("model_coefficients")
@@ -16,16 +16,15 @@ export const getGlobalAnalytics = async (req, res) => {
       .eq("model_name", "win_predictor")
       .maybeSingle();
 
-    if (modelError) throw modelError;
+    if (modelError) return next(modelError);
 
     res.status(200).json({ archetypes, winPredictor: model });
   } catch (error) {
-    console.error("Get Global Analytics Error:", error.message);
-    res.status(500).json({ message: "Error fetching global analytics." });
+    next(error);
   }
 };
 
-export const trainArchetypeModel = async (req, res) => {
+export const trainArchetypeModel = async (req, res, next) => {
   const { game } = req.body;
   if (!game) {
     return res.status(400).json({ message: "Game type is required." });
@@ -36,24 +35,23 @@ export const trainArchetypeModel = async (req, res) => {
       "calculate_player_stats_vector",
       { p_game_type: game }
     );
-    if (vectorError) throw vectorError;
+    if (vectorError) return next(vectorError);
 
     const { error: archetypeError } = await supabase.rpc(
       "assign_player_archetypes",
       { p_game_type: game }
     );
-    if (archetypeError) throw archetypeError;
+    if (archetypeError) return next(archetypeError);
 
     res
       .status(200)
       .json({ message: `Player archetype model "trained" for ${game}.` });
   } catch (error) {
-    console.error("Train Archetype Model Error:", error.message);
-    res.status(500).json({ message: "Error training archetype model." });
+    next(error);
   }
 };
 
-export const trainWinPredictor = async (req, res) => {
+export const trainWinPredictor = async (req, res, next) => {
   const { coefficients } = req.body;
   if (!coefficients) {
     return res.status(400).json({ message: "Coefficients are required." });
@@ -67,16 +65,15 @@ export const trainWinPredictor = async (req, res) => {
         { onConflict: "model_name" }
       );
 
-    if (error) throw error;
+    if (error) return next(error);
 
     res.status(200).json({ message: "Win predictor model updated." });
   } catch (error) {
-    console.error("Train Win Predictor Error:", error.message);
-    res.status(500).json({ message: "Error saving win predictor model." });
+    next(error);
   }
 };
 
-export const getSimilarPlayers = async (req, res) => {
+export const getSimilarPlayers = async (req, res, next) => {
   const { playerId } = req.params;
   const { game, limit = 5 } = req.query;
 
@@ -91,15 +88,14 @@ export const getSimilarPlayers = async (req, res) => {
       p_limit: parseInt(limit, 10),
     });
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get Similar Players Error:", error.message);
-    res.status(500).json({ message: "Error finding similar players." });
+    next(error);
   }
 };
 
-export const getMatchPrediction = async (req, res) => {
+export const getMatchPrediction = async (req, res, next) => {
   const { matchId } = req.params;
   try {
     const { data: modelData, error: modelError } = await supabase
@@ -108,7 +104,8 @@ export const getMatchPrediction = async (req, res) => {
       .eq("model_name", "win_predictor")
       .single();
 
-    if (modelError || !modelData) {
+    if (modelError) return next(modelError);
+    if (!modelData) {
       return res
         .status(404)
         .json({ message: "Win predictor model not found." });
@@ -122,7 +119,8 @@ export const getMatchPrediction = async (req, res) => {
       .eq("id", matchId)
       .single();
 
-    if (matchError || !match || !match.team1 || !match.team2) {
+    if (matchError) return next(matchError);
+    if (!match || !match.team1 || !match.team2) {
       return res.status(404).json({ message: "Match or teams not found." });
     }
 
@@ -143,7 +141,6 @@ export const getMatchPrediction = async (req, res) => {
       team2_win_probability: 1 - winProbability,
     });
   } catch (error) {
-    console.error("Get Match Prediction Error:", error.message);
-    res.status(500).json({ message: "Error predicting match outcome." });
+    next(error);
   }
 };

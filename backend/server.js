@@ -30,8 +30,6 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: "50mb" }));
 app.use(cookieParser());
 
-// CSRF Protection - Disabled for development
-// TODO: Re-enable and fix CSRF configuration for production
 const csrfProtection = csurf({
   cookie: {
     key: "_csrf",
@@ -39,23 +37,25 @@ const csrfProtection = csurf({
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
   },
-  ignoreMethods: ["GET", "HEAD", "OPTIONS", "POST", "PUT", "PATCH", "DELETE"], // Temporarily disable for all methods
+  ignoreMethods: ["GET", "HEAD", "OPTIONS"],
+  value: (req) => {
+    // Check multiple possible header names
+    return (
+      req.headers["x-xsrf-token"] ||
+      req.headers["x-csrf-token"] ||
+      req.body._csrf
+    );
+  },
 });
 
-// Commented out CSRF middleware for development
-// app.use(csrfProtection);
+app.use(csrfProtection);
 
-// Middleware to set a dummy XSRF-TOKEN cookie for compatibility
-app.use((req, res, next) => {
-  res.cookie("XSRF-TOKEN", "development-token", {
+app.get("/api", (req, res) => {
+  res.cookie("XSRF-TOKEN", req.csrfToken(), {
     httpOnly: false,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
   });
-  next();
-});
-
-app.get("/api", (req, res) => {
   res.status(200).json({
     message: "PlayBook API is running successfully!",
     timestamp: new Date().toISOString(),
@@ -70,17 +70,34 @@ app.use("/api/predictions", predictionRoutes);
 app.use("/api/ds", dataScienceRoutes);
 app.use("/api/activity", activityRoutes);
 
-// CSRF error handler - Disabled for development
-// app.use((err, req, res, next) => {
-//   if (err.code === "EBADCSRFTOKEN") {
-//     res.status(403).json({ message: "Invalid CSRF token." });
-//   } else {
-//     next(err);
-//   }
-// });
+app.use((err, req, res, next) => {
+  if (err.code === "EBADCSRFTOKEN") {
+    console.error("CSRF Token Error:", {
+      headers: req.headers,
+      cookies: req.cookies,
+      body: req.body,
+    });
+    return res.status(403).json({
+      message: "Invalid CSRF token.",
+      debug:
+        process.env.NODE_ENV === "development"
+          ? {
+              receivedHeader: req.headers["x-xsrf-token"],
+              hasCookie: !!req.cookies._csrf,
+            }
+          : undefined,
+    });
+  }
+  next(err);
+});
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "An internal server error occurred." });
 });
 
 app.listen(port, () => {

@@ -1,6 +1,6 @@
 import supabase from "../supabaseClient.js";
 
-export const makePick = async (req, res) => {
+export const makePick = async (req, res, next) => {
   const { userId } = req.user;
   const { match_id, predicted_winner_team_id } = req.body;
 
@@ -17,17 +17,14 @@ export const makePick = async (req, res) => {
       .eq("id", match_id)
       .single();
 
-    if (matchError) throw matchError;
+    if (matchError) return next(matchError);
     if (!match) {
       return res.status(404).json({ message: "Match not found." });
     }
     if (match.status !== "pending") {
-      return res
-        .status(403)
-        .json({
-          message:
-            "Predictions are locked. This match has started or finished.",
-        });
+      return res.status(403).json({
+        message: "Predictions are locked. This match has started or finished.",
+      });
     }
 
     const { data, error } = await supabase
@@ -45,17 +42,16 @@ export const makePick = async (req, res) => {
       )
       .select();
 
-    if (error) throw error;
+    if (error) return next(error);
     res
       .status(200)
       .json({ message: "Pick saved successfully.", pick: data[0] });
   } catch (error) {
-    console.error("Make Pick Error:", error.message);
-    res.status(500).json({ message: "Error saving pick." });
+    next(error);
   }
 };
 
-export const getMyPicks = async (req, res) => {
+export const getMyPicks = async (req, res, next) => {
   const { userId } = req.user;
   const { tournamentId } = req.params;
 
@@ -73,15 +69,14 @@ export const getMyPicks = async (req, res) => {
       .eq("user_id", userId)
       .eq("match.tournament_id", tournamentId);
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get My Picks Error:", error.message);
-    res.status(500).json({ message: "Error fetching user predictions." });
+    next(error);
   }
 };
 
-export const getLeaderboard = async (req, res) => {
+export const getLeaderboard = async (req, res, next) => {
   const { tournamentId } = req.params;
 
   try {
@@ -89,10 +84,9 @@ export const getLeaderboard = async (req, res) => {
       p_tournament_id: tournamentId,
     });
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get Leaderboard Error:", error.message);
-    res.status(500).json({ message: "Error fetching leaderboard." });
+    next(error);
   }
 };

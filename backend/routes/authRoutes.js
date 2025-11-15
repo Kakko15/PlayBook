@@ -26,6 +26,7 @@ import {
   otpLimiter,
   passwordResetLimiter,
   defaultLimiter,
+  uploadLimiter,
 } from "../middleware/securityMiddleware.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -58,13 +59,13 @@ router.put("/password", protect, passwordResetLimiter, updatePassword);
 router.get("/profile", protect, getProfile);
 router.patch("/profile", protect, defaultLimiter, updateProfile);
 
-router.post("/profile/picture", protect, defaultLimiter, updateProfilePicture);
+router.post("/profile/picture", protect, uploadLimiter, updateProfilePicture);
 router.delete(
   "/profile/picture",
   protect,
   defaultLimiter,
   removeProfilePicture
 );
-router.post("/profile/detect-face", protect, defaultLimiter, detectFace);
+router.post("/profile/detect-face", protect, uploadLimiter, detectFace);
 
 export default router;

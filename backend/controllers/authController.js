@@ -16,7 +16,7 @@ const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
   process.env.GOOGLE_REDIRECT_URI ||
-    "http://localhost:5173/auth/callback/google"
+    `${process.env.FRONTEND_URL}/auth/callback/google`
 );
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -53,7 +53,7 @@ const getSanitizedUser = (user) => {
   return sanitizedUser;
 };
 
-export const signup = async (req, res) => {
+export const signup = async (req, res, next) => {
   const { name, email, password, recaptchaToken } = req.body;
 
   if (!name || !email || !password || !recaptchaToken) {
@@ -83,7 +83,7 @@ export const signup = async (req, res) => {
       .eq("email", email)
       .maybeSingle();
 
-    if (checkError) throw checkError;
+    if (checkError) return next(checkError);
     if (existingUser) {
       return res
         .status(409)
@@ -109,7 +109,7 @@ export const signup = async (req, res) => {
       .select("id")
       .single();
 
-    if (insertUserError) throw insertUserError;
+    if (insertUserError) return next(insertUserError);
 
     const { error: insertProfileError } = await supabase
       .from("profiles")
@@ -117,7 +117,7 @@ export const signup = async (req, res) => {
         id: newUser.id,
       });
 
-    if (insertProfileError) throw insertProfileError;
+    if (insertProfileError) return next(insertProfileError);
 
     const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
     await sendVerificationEmail(sanitize(email), sanitize(name), verifyUrl);
@@ -126,14 +126,11 @@ export const signup = async (req, res) => {
       message: "Registration successful. Please check your email to verify.",
     });
   } catch (error) {
-    console.error("Signup Error:", error.message);
-    res
-      .status(500)
-      .json({ message: "Server error during signup.", error: error.message });
+    next(error);
   }
 };
 
-export const login = async (req, res) => {
+export const login = async (req, res, next) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -149,7 +146,7 @@ export const login = async (req, res) => {
       .eq("email", email)
       .maybeSingle();
 
-    if (findError) throw findError;
+    if (findError) return next(findError);
     if (!user) {
       return res.status(401).json({ message: "Invalid credentials." });
     }
@@ -191,14 +188,11 @@ export const login = async (req, res) => {
       message: "Login successful.",
     });
   } catch (error) {
-    console.error("Login Error:", error.message);
-    res
-      .status(500)
-      .json({ message: "Server error during login.", error: error.message });
+    next(error);
   }
 };
 
-export const verifyEmail = async (req, res) => {
+export const verifyEmail = async (req, res, next) => {
   const { token } = req.query;
   if (!token) {
     return res.status(400).send("Verification token is required.");
@@ -214,7 +208,7 @@ export const verifyEmail = async (req, res) => {
       .eq("status", "pending")
       .maybeSingle();
 
-    if (findError) throw findError;
+    if (findError) return next(findError);
 
     if (!user || new Date() > new Date(user.email_verification_expires)) {
       if (user) {
@@ -235,7 +229,7 @@ export const verifyEmail = async (req, res) => {
       })
       .eq("id", user.id);
 
-    if (updateError) throw updateError;
+    if (updateError) return next(updateError);
 
     await supabase.rpc("log_activity", {
       p_icon: "how_to_reg",
@@ -248,12 +242,11 @@ export const verifyEmail = async (req, res) => {
     // Redirect to a frontend page
     res.redirect(`${process.env.FRONTEND_URL}/pending-approval`);
   } catch (error) {
-    console.error("Email Verification Error:", error.message);
-    res.status(500).send("Error verifying email.");
+    next(error);
   }
 };
 
-export const googleOAuth = async (req, res) => {
+export const googleOAuth = async (req, res, next) => {
   const { credential, code } = req.body;
 
   if (!credential && !code) {
@@ -294,7 +287,7 @@ export const googleOAuth = async (req, res) => {
       .eq("email", email)
       .maybeSingle();
 
-    if (findError) throw findError;
+    if (findError) return next(findError);
 
     if (!user) {
       const { data: newUser, error: createError } = await supabase
@@ -309,7 +302,7 @@ export const googleOAuth = async (req, res) => {
         .select("id")
         .single();
 
-      if (createError) throw createError;
+      if (createError) return next(createError);
 
       await supabase.from("profiles").insert({ id: newUser.id });
 
@@ -363,15 +356,11 @@ export const googleOAuth = async (req, res) => {
       message: "Login successful.",
     });
   } catch (error) {
-    console.error("Google OAuth Error:", error.message);
-    res.status(500).json({
-      message: "Google authentication failed.",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
-export const discordOAuth = async (req, res) => {
+export const discordOAuth = async (req, res, next) => {
   const { code } = req.body;
   if (!code) {
     return res.status(400).json({ message: "Discord code is required." });
@@ -418,7 +407,7 @@ export const discordOAuth = async (req, res) => {
       .eq("email", email)
       .maybeSingle();
 
-    if (findError) throw findError;
+    if (findError) return next(findError);
 
     if (!user) {
       const { data: newUser, error: createError } = await supabase
@@ -433,7 +422,7 @@ export const discordOAuth = async (req, res) => {
         .select("id")
         .single();
 
-      if (createError) throw createError;
+      if (createError) return next(createError);
 
       await supabase.from("profiles").insert({ id: newUser.id });
 
@@ -487,18 +476,11 @@ export const discordOAuth = async (req, res) => {
       message: "Login successful.",
     });
   } catch (error) {
-    console.error(
-      "Discord OAuth Error:",
-      error.response?.data || error.message
-    );
-    res.status(500).json({
-      message: "Discord authentication failed.",
-      error: error.response?.data || error.message,
-    });
+    next(error);
   }
 };
 
-export const generateOtpSecret = async (req, res) => {
+export const generateOtpSecret = async (req, res, next) => {
   const { userId, email } = req.user;
   try {
     const { data: existingUser, error: fetchError } = await supabase
@@ -507,7 +489,7 @@ export const generateOtpSecret = async (req, res) => {
       .eq("id", userId)
       .single();
 
-    if (fetchError) throw fetchError;
+    if (fetchError) return next(fetchError);
 
     let secretBase32;
 
@@ -526,7 +508,7 @@ export const generateOtpSecret = async (req, res) => {
         .update({ otp_secret: secretBase32, otp_enabled: false })
         .eq("id", userId);
 
-      if (error) throw error;
+      if (error) return next(error);
     }
 
     const otpauthUrl = `otpauth://totp/PlayBook:${encodeURIComponent(email)}?secret=${secretBase32}&issuer=PlayBook`;
@@ -536,12 +518,11 @@ export const generateOtpSecret = async (req, res) => {
       qrCodeUrl: otpauthUrl,
     });
   } catch (error) {
-    console.error("Generate OTP Error:", error.message);
-    res.status(500).json({ message: "Error generating OTP secret." });
+    next(error);
   }
 };
 
-export const verifyAndEnableOtp = async (req, res) => {
+export const verifyAndEnableOtp = async (req, res, next) => {
   const { userId } = req.user;
   const { token } = req.body;
 
@@ -552,7 +533,8 @@ export const verifyAndEnableOtp = async (req, res) => {
       .eq("id", userId)
       .single();
 
-    if (fetchError || !user) {
+    if (fetchError) return next(fetchError);
+    if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
@@ -572,16 +554,15 @@ export const verifyAndEnableOtp = async (req, res) => {
       .update({ otp_enabled: true })
       .eq("id", userId);
 
-    if (updateError) throw updateError;
+    if (updateError) return next(updateError);
 
     res.status(200).json({ message: "2FA enabled successfully." });
   } catch (error) {
-    console.error("Verify OTP Error:", error.message);
-    res.status(500).json({ message: "Error verifying OTP code." });
+    next(error);
   }
 };
 
-export const verifyOtpLogin = async (req, res) => {
+export const verifyOtpLogin = async (req, res, next) => {
   const { email, token } = req.body;
 
   if (!email || !token) {
@@ -597,7 +578,8 @@ export const verifyOtpLogin = async (req, res) => {
       .eq("email", email)
       .maybeSingle();
 
-    if (fetchError || !user) {
+    if (fetchError) return next(fetchError);
+    if (!user) {
       return res.status(401).json({ message: "Invalid credentials." });
     }
 
@@ -629,12 +611,11 @@ export const verifyOtpLogin = async (req, res) => {
       message: "Login successful.",
     });
   } catch (error) {
-    console.error("OTP Login Error:", error.message);
-    res.status(500).json({ message: "Server error during OTP login." });
+    next(error);
   }
 };
 
-export const requestPasswordReset = async (req, res) => {
+export const requestPasswordReset = async (req, res, next) => {
   const { email } = req.body;
   if (!email) {
     return res.status(400).json({ message: "Email is required." });
@@ -647,7 +628,8 @@ export const requestPasswordReset = async (req, res) => {
       .eq("email", email)
       .maybeSingle();
 
-    if (!findError && user && user.status === "active") {
+    if (findError) return next(findError);
+    if (user && user.status === "active") {
       const resetToken = crypto.randomBytes(32).toString("hex");
       const tokenHash = hashToken(resetToken);
       const expiresAt = new Date(Date.now() + 3600000); // 1 hour
@@ -667,15 +649,11 @@ export const requestPasswordReset = async (req, res) => {
         "If an active account with that email exists, a password reset link has been sent.",
     });
   } catch (error) {
-    console.error("Request Password Reset Error:", error.message);
-    res.status(200).json({
-      message:
-        "If an active account with that email exists, a password reset link has been sent.",
-    });
+    next(error);
   }
 };
 
-export const validateResetToken = async (req, res) => {
+export const validateResetToken = async (req, res, next) => {
   const { token } = req.body;
   if (!token) {
     return res.status(400).json({ message: "Token is required." });
@@ -690,7 +668,7 @@ export const validateResetToken = async (req, res) => {
       .eq("token_hash", tokenHash)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) return next(error);
 
     if (!data || new Date() > new Date(data.expires_at)) {
       if (data) {
@@ -704,12 +682,11 @@ export const validateResetToken = async (req, res) => {
 
     res.status(200).json({ message: "Token is valid." });
   } catch (error) {
-    console.error("Validate Token Error:", error.message);
-    res.status(500).json({ message: "Error validating token." });
+    next(error);
   }
 };
 
-export const resetPassword = async (req, res) => {
+export const resetPassword = async (req, res, next) => {
   const { token, newPassword } = req.body;
 
   if (!token || !newPassword) {
@@ -734,7 +711,7 @@ export const resetPassword = async (req, res) => {
       .eq("token_hash", tokenHash)
       .maybeSingle();
 
-    if (findError) throw findError;
+    if (findError) return next(findError);
 
     if (!tokenRecord || new Date() > new Date(tokenRecord.expires_at)) {
       if (tokenRecord) {
@@ -753,7 +730,7 @@ export const resetPassword = async (req, res) => {
       .update({ password_hash: passwordHash })
       .eq("email", tokenRecord.email);
 
-    if (updateError) throw updateError;
+    if (updateError) return next(updateError);
 
     await supabase
       .from("password_reset_tokens")
@@ -762,12 +739,11 @@ export const resetPassword = async (req, res) => {
 
     res.status(200).json({ message: "Password has been reset successfully." });
   } catch (error) {
-    console.error("Reset Password Error:", error.message);
-    res.status(500).json({ message: "Error resetting password." });
+    next(error);
   }
 };
 
-export const getAccountDetails = async (req, res) => {
+export const getAccountDetails = async (req, res, next) => {
   const { userId } = req.user;
 
   try {
@@ -777,19 +753,18 @@ export const getAccountDetails = async (req, res) => {
       .eq("id", userId)
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
     res.status(200).json(user);
   } catch (error) {
-    console.error("Get Account Details Error:", error.message);
-    res.status(500).json({ message: "Error fetching account details." });
+    next(error);
   }
 };
 
-export const updateAccountDetails = async (req, res) => {
+export const updateAccountDetails = async (req, res, next) => {
   const { userId } = req.user;
   const { name, email } = req.body;
 
@@ -810,7 +785,7 @@ export const updateAccountDetails = async (req, res) => {
         .not("id", "eq", userId)
         .maybeSingle();
 
-      if (checkError) throw checkError;
+      if (checkError) return next(checkError);
       if (existingUser) {
         return res
           .status(409)
@@ -825,19 +800,18 @@ export const updateAccountDetails = async (req, res) => {
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
 
     res.status(200).json({
       user: getSanitizedUser(data),
       message: "Account updated successfully.",
     });
   } catch (error) {
-    console.error("Update Account Error:", error.message);
-    res.status(500).json({ message: "Error updating account details." });
+    next(error);
   }
 };
 
-export const updatePassword = async (req, res) => {
+export const updatePassword = async (req, res, next) => {
   const { userId } = req.user;
   const { currentPassword, newPassword } = req.body;
 
@@ -861,7 +835,7 @@ export const updatePassword = async (req, res) => {
       .eq("id", userId)
       .single();
 
-    if (findError) throw findError;
+    if (findError) return next(findError);
 
     if (!user.password_hash) {
       return res
@@ -884,16 +858,15 @@ export const updatePassword = async (req, res) => {
       .update({ password_hash: newPasswordHash })
       .eq("id", userId);
 
-    if (updateError) throw updateError;
+    if (updateError) return next(updateError);
 
     res.status(200).json({ message: "Password updated successfully." });
   } catch (error) {
-    console.error("Update Password Error:", error.message);
-    res.status(500).json({ message: "Error updating password." });
+    next(error);
   }
 };
 
-export const getProfile = async (req, res) => {
+export const getProfile = async (req, res, next) => {
   const { userId } = req.user;
   try {
     const { data, error } = await supabase
@@ -902,15 +875,14 @@ export const getProfile = async (req, res) => {
       .eq("id", userId)
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get Profile Error:", error.message);
-    res.status(500).json({ message: "Error fetching profile." });
+    next(error);
   }
 };
 
-export const updateProfile = async (req, res) => {
+export const updateProfile = async (req, res, next) => {
   const { userId } = req.user;
   const { pronouns, about_me, phone } = req.body;
 
@@ -931,17 +903,17 @@ export const updateProfile = async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json({ data, message: "Profile updated successfully." });
   } catch (error) {
-    console.error("Update Profile Error:", error.message);
-    res.status(500).json({ message: "Error updating profile." });
+    next(error);
   }
 };
 
 const MAX_BASE64_SIZE = 7000000; // ~5MB (5 * 1024 * 1024 * 1.33)
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/jpg"];
 
-export const updateProfilePicture = async (req, res) => {
+export const updateProfilePicture = async (req, res, next) => {
   const { userId } = req.user;
   const { imageBase64 } = req.body;
 
@@ -950,7 +922,18 @@ export const updateProfilePicture = async (req, res) => {
   }
 
   if (imageBase64.length > MAX_BASE64_SIZE) {
-    return res.status(413).json({ message: "Image file is too large." });
+    return res
+      .status(413)
+      .json({ message: "Image file is too large (Max 5MB)." });
+  }
+
+  const mimeTypeMatch = imageBase64.match(
+    /^data:(image\/(?:jpeg|png|jpg));base64,/
+  );
+  if (!mimeTypeMatch || !ALLOWED_MIME_TYPES.includes(mimeTypeMatch[1])) {
+    return res
+      .status(400)
+      .json({ message: "Invalid image format. Only JPG or PNG is allowed." });
   }
 
   try {
@@ -961,19 +944,18 @@ export const updateProfilePicture = async (req, res) => {
       .select("profile_picture_url")
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
 
     res.status(200).json({
       message: "Profile picture updated.",
       profilePictureUrl: profile.profile_picture_url,
     });
   } catch (error) {
-    console.error("Update PFP Error:", error.message);
-    res.status(500).json({ message: "Error updating profile picture." });
+    next(error);
   }
 };
 
-export const removeProfilePicture = async (req, res) => {
+export const removeProfilePicture = async (req, res, next) => {
   const { userId } = req.user;
   try {
     const { error } = await supabase
@@ -981,15 +963,14 @@ export const removeProfilePicture = async (req, res) => {
       .update({ profile_picture_url: null })
       .eq("id", userId);
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json({ message: "Profile picture removed." });
   } catch (error) {
-    console.error("Remove PFP Error:", error.message);
-    res.status(500).json({ message: "Error removing profile picture." });
+    next(error);
   }
 };
 
-export const detectFace = async (req, res) => {
+export const detectFace = async (req, res, next) => {
   const { imageBase64 } = req.body;
   const apiKey = process.env.FACEPLUSPLUS_API_KEY;
   const apiSecret = process.env.FACEPLUSPLUS_API_SECRET;
@@ -1081,12 +1062,6 @@ export const detectFace = async (req, res) => {
       confidence: confidence,
     });
   } catch (error) {
-    console.error(
-      "Face++ API Error:",
-      error.response?.data?.error_message || error.message
-    );
-    res.status(500).json({
-      message: error.response?.data?.error_message || "Face detection failed.",
-    });
+    next(error);
   }
 };

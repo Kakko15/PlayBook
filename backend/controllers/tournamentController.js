@@ -2,59 +2,33 @@ import supabase from "../supabaseClient.js";
 import { generateRoundRobin, calculateElo } from "../utils/tournamentLogic.js";
 import { sanitize, sanitizeObject } from "../utils/sanitize.js";
 
-export const createTournament = async (req, res) => {
+export const createTournament = async (req, res, next) => {
   const { name, game } = req.body;
   const ownerId = req.user.userId;
-
-  console.log("=== CREATE TOURNAMENT DEBUG ===");
-  console.log("Name:", name);
-  console.log("Game:", game);
-  console.log("Owner ID:", ownerId);
 
   if (!name || !game) {
     return res.status(400).json({ message: "Name and game are required." });
   }
 
   try {
-    // Create tournament directly without RPC function
-    console.log("Attempting to insert tournament...");
     const { data: tournament, error: tournamentError } = await supabase
       .from("tournaments")
       .insert({
         name: sanitize(name),
         game: sanitize(game),
-        owner_id: ownerId, // Required field
+        owner_id: ownerId,
       })
       .select()
       .single();
 
-    console.log("Tournament insert result:", { tournament, tournamentError });
-
-    if (tournamentError) {
-      console.error("Tournament insert error:", tournamentError);
-      console.error("Error code:", tournamentError.code);
-      console.error("Error message:", tournamentError.message);
-      console.error("Error details:", tournamentError.details);
-      console.error("Error hint:", tournamentError.hint);
-      return res.status(500).json({
-        message: "Error creating tournament.",
-        error: tournamentError.message,
-        details: tournamentError.details,
-        hint: tournamentError.hint,
-      });
-    }
+    if (tournamentError) return next(tournamentError);
 
     if (!tournament) {
-      console.error("No tournament data returned");
       return res
         .status(500)
         .json({ message: "Tournament creation failed to return data." });
     }
 
-    console.log("Tournament created successfully:", tournament.id);
-
-    // Add the creator as a collaborator
-    console.log("Adding collaborator...");
     const { data: collaborator, error: collaboratorError } = await supabase
       .from("collaborators")
       .insert({
@@ -65,39 +39,18 @@ export const createTournament = async (req, res) => {
       .select();
 
     if (collaboratorError) {
-      console.error("Collaborator creation error:", collaboratorError);
-      console.error("Collaborator error code:", collaboratorError.code);
-      console.error("Collaborator error message:", collaboratorError.message);
-      console.error("Collaborator error details:", collaboratorError.details);
-      console.log(
-        "Continuing without collaborator entry (using owner_id instead)"
-      );
-      // Don't fail - we have owner_id in the tournament already
-    } else {
-      console.log("Collaborator added successfully:", collaborator);
     }
 
-    console.log("=== CREATE TOURNAMENT SUCCESS ===");
     res.status(201).json(tournament);
   } catch (error) {
-    console.error("=== CREATE TOURNAMENT EXCEPTION ===");
-    console.error("Error:", error);
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
-    res
-      .status(500)
-      .json({ message: "Error creating tournament.", error: error.message });
+    next(error);
   }
 };
 
-export const getMyTournaments = async (req, res) => {
+export const getMyTournaments = async (req, res, next) => {
   const userId = req.user.userId;
-  console.log("=== GET MY TOURNAMENTS ===");
-  console.log("User ID:", userId);
 
   try {
-    // Try with collaborators first
-    console.log("Trying collaborators query...");
     const { data: collabData, error: collabError } = await supabase
       .from("tournaments")
       .select(
@@ -110,19 +63,10 @@ export const getMyTournaments = async (req, res) => {
       .eq("collaborators.user_id", userId)
       .order("created_at", { ascending: false });
 
-    console.log("Collaborators query result:", {
-      dataLength: collabData?.length,
-      error: collabError?.message,
-    });
-
-    // If collaborators query works AND has data, use it
     if (!collabError && collabData && collabData.length > 0) {
-      console.log("Returning tournaments from collaborators query");
       return res.status(200).json(collabData);
     }
 
-    // Fallback: query by owner_id directly
-    console.log("Using owner_id fallback query...");
     const { data, error } = await supabase
       .from("tournaments")
       .select(
@@ -134,30 +78,19 @@ export const getMyTournaments = async (req, res) => {
       .eq("owner_id", userId)
       .order("created_at", { ascending: false });
 
-    console.log("Owner_id query result:", {
-      dataLength: data?.length,
-      error: error?.message,
-    });
+    if (error) return next(error);
 
-    if (error) throw error;
-
-    console.log("Returning tournaments from owner_id query");
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get My Tournaments Error:", error.message);
-    res.status(500).json({ message: "Error fetching tournaments." });
+    next(error);
   }
 };
 
-export const getTournamentById = async (req, res) => {
+export const getTournamentById = async (req, res, next) => {
   const { id } = req.params;
   const userId = req.user.userId;
-  console.log("=== GET TOURNAMENT BY ID ===");
-  console.log("Tournament ID:", id);
-  console.log("User ID:", userId);
 
   try {
-    // Try with collaborators first
     const { data: collabData, error: collabError } = await supabase
       .from("tournaments")
       .select(
@@ -171,12 +104,9 @@ export const getTournamentById = async (req, res) => {
       .single();
 
     if (!collabError && collabData) {
-      console.log("Tournament found via collaborators");
       return res.status(200).json(collabData);
     }
 
-    // Fallback: query by owner_id
-    console.log("Trying owner_id fallback...");
     const { data, error } = await supabase
       .from("tournaments")
       .select("*")
@@ -184,22 +114,20 @@ export const getTournamentById = async (req, res) => {
       .eq("owner_id", userId)
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
     if (!data) {
       return res
         .status(404)
         .json({ message: "Tournament not found or access denied." });
     }
 
-    console.log("Tournament found via owner_id");
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get Tournament By Id Error:", error.message);
-    res.status(500).json({ message: "Error fetching tournament details." });
+    next(error);
   }
 };
 
-export const updateTournament = async (req, res) => {
+export const updateTournament = async (req, res, next) => {
   const { id } = req.params;
   const { name, game, startDate, endDate, registrationOpen } = req.body;
 
@@ -223,27 +151,25 @@ export const updateTournament = async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Update Tournament Error:", error.message);
-    res.status(500).json({ message: "Error updating tournament." });
+    next(error);
   }
 };
 
-export const deleteTournament = async (req, res) => {
+export const deleteTournament = async (req, res, next) => {
   const { id } = req.params;
   try {
     const { error } = await supabase.from("tournaments").delete().eq("id", id);
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json({ message: "Tournament deleted successfully." });
   } catch (error) {
-    console.error("Delete Tournament Error:", error.message);
-    res.status(500).json({ message: "Error deleting tournament." });
+    next(error);
   }
 };
 
-export const getTeams = async (req, res) => {
+export const getTeams = async (req, res, next) => {
   const { tournamentId } = req.params;
   try {
     const { data, error } = await supabase
@@ -252,15 +178,14 @@ export const getTeams = async (req, res) => {
       .eq("tournament_id", tournamentId)
       .order("name", { ascending: true });
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get Teams Error:", error.message);
-    res.status(500).json({ message: "Error fetching teams." });
+    next(error);
   }
 };
 
-export const addTeam = async (req, res) => {
+export const addTeam = async (req, res, next) => {
   const { tournamentId } = req.params;
   const { name, logo_url } = req.body;
   const { userId } = req.user;
@@ -280,7 +205,7 @@ export const addTeam = async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
 
     await supabase.rpc("log_activity", {
       p_icon: "group_add",
@@ -293,12 +218,11 @@ export const addTeam = async (req, res) => {
 
     res.status(201).json(data);
   } catch (error) {
-    console.error("Add Team Error:", error.message);
-    res.status(500).json({ message: "Error adding team." });
+    next(error);
   }
 };
 
-export const updateTeam = async (req, res) => {
+export const updateTeam = async (req, res, next) => {
   const { teamId } = req.params;
   const { name, logo_url } = req.body;
 
@@ -313,27 +237,25 @@ export const updateTeam = async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Update Team Error:", error.message);
-    res.status(500).json({ message: "Error updating team." });
+    next(error);
   }
 };
 
-export const deleteTeam = async (req, res) => {
+export const deleteTeam = async (req, res, next) => {
   const { teamId } = req.params;
   try {
     const { error } = await supabase.from("teams").delete().eq("id", teamId);
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json({ message: "Team deleted successfully." });
   } catch (error) {
-    console.error("Delete Team Error:", error.message);
-    res.status(500).json({ message: "Error deleting team." });
+    next(error);
   }
 };
 
-export const getPlayers = async (req, res) => {
+export const getPlayers = async (req, res, next) => {
   const { teamId } = req.params;
   try {
     const { data, error } = await supabase
@@ -342,15 +264,14 @@ export const getPlayers = async (req, res) => {
       .eq("team_id", teamId)
       .order("name", { ascending: true });
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get Players Error:", error.message);
-    res.status(500).json({ message: "Error fetching players." });
+    next(error);
   }
 };
 
-export const addPlayer = async (req, res) => {
+export const addPlayer = async (req, res, next) => {
   const { teamId } = req.params;
   const { name, game_specific_data } = req.body;
 
@@ -369,15 +290,14 @@ export const addPlayer = async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(201).json(data);
   } catch (error) {
-    console.error("Add Player Error:", error.message);
-    res.status(500).json({ message: "Error adding player." });
+    next(error);
   }
 };
 
-export const updatePlayer = async (req, res) => {
+export const updatePlayer = async (req, res, next) => {
   const { playerId } = req.params;
   const { name, game_specific_data } = req.body;
 
@@ -392,30 +312,28 @@ export const updatePlayer = async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Update Player Error:", error.message);
-    res.status(500).json({ message: "Error updating player." });
+    next(error);
   }
 };
 
-export const deletePlayer = async (req, res) => {
+export const deletePlayer = async (req, res, next) => {
   const { playerId } = req.params;
   try {
     const { error } = await supabase
       .from("players")
       .delete()
       .eq("id", playerId);
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json({ message: "Player deleted successfully." });
   } catch (error) {
-    console.error("Delete Player Error:", error.message);
-    res.status(500).json({ message: "Error deleting player." });
+    next(error);
   }
 };
 
-export const generateSchedule = async (req, res) => {
+export const generateSchedule = async (req, res, next) => {
   const { id: tournament_id } = req.params;
   const { userId } = req.user;
 
@@ -425,7 +343,7 @@ export const generateSchedule = async (req, res) => {
       .select("id")
       .eq("tournament_id", tournament_id);
 
-    if (teamsError) throw teamsError;
+    if (teamsError) return next(teamsError);
     if (teams.length < 2) {
       return res.status(400).json({
         message: "At least two teams are required to generate a schedule.",
@@ -447,7 +365,7 @@ export const generateSchedule = async (req, res) => {
       .from("matches")
       .insert(matchesToInsert);
 
-    if (insertError) throw insertError;
+    if (insertError) return next(insertError);
 
     await supabase.rpc("log_activity", {
       p_icon: "calendar_month",
@@ -460,12 +378,11 @@ export const generateSchedule = async (req, res) => {
 
     res.status(201).json({ message: "Schedule generated successfully." });
   } catch (error) {
-    console.error("Generate Schedule Error:", error.message);
-    res.status(500).json({ message: "Error generating schedule." });
+    next(error);
   }
 };
 
-export const generatePlayoffBracket = async (req, res) => {
+export const generatePlayoffBracket = async (req, res, next) => {
   const { id: tournament_id } = req.params;
   const { numTeams } = req.body;
 
@@ -484,7 +401,7 @@ export const generatePlayoffBracket = async (req, res) => {
       .order("elo_rating", { ascending: false })
       .limit(numTeams);
 
-    if (teamsError) throw teamsError;
+    if (teamsError) return next(teamsError);
     if (teams.length < numTeams) {
       return res
         .status(400)
@@ -510,7 +427,7 @@ export const generatePlayoffBracket = async (req, res) => {
       })
       .select("id")
       .single();
-    if (finalError) throw finalError;
+    if (finalError) return next(finalError);
 
     const { data: semiFinal1, error: sf1Error } = await supabase
       .from("matches")
@@ -523,7 +440,7 @@ export const generatePlayoffBracket = async (req, res) => {
       })
       .select("id")
       .single();
-    if (sf1Error) throw sf1Error;
+    if (sf1Error) return next(sf1Error);
 
     const { data: semiFinal2, error: sf2Error } = await supabase
       .from("matches")
@@ -536,7 +453,7 @@ export const generatePlayoffBracket = async (req, res) => {
       })
       .select("id")
       .single();
-    if (sf2Error) throw sf2Error;
+    if (sf2Error) return next(sf2Error);
 
     const quarterFinals = [
       {
@@ -572,16 +489,15 @@ export const generatePlayoffBracket = async (req, res) => {
     }));
 
     const { error: qfError } = await supabase.from("matches").insert(qfMatches);
-    if (qfError) throw qfError;
+    if (qfError) return next(qfError);
 
     res.status(201).json({ message: "8-team bracket generated successfully." });
   } catch (error) {
-    console.error("Generate Bracket Error:", error.message);
-    res.status(500).json({ message: "Error generating bracket." });
+    next(error);
   }
 };
 
-export const getSchedule = async (req, res) => {
+export const getSchedule = async (req, res, next) => {
   const { id: tournament_id } = req.params;
   try {
     const { data, error } = await supabase
@@ -593,15 +509,14 @@ export const getSchedule = async (req, res) => {
       .order("round_name", { ascending: true, nullsFirst: true })
       .order("match_date", { ascending: true, nullsFirst: true });
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get Schedule Error:", error.message);
-    res.status(500).json({ message: "Error fetching schedule." });
+    next(error);
   }
 };
 
-export const getStandings = async (req, res) => {
+export const getStandings = async (req, res, next) => {
   const { id: tournament_id } = req.params;
   try {
     const { data, error } = await supabase
@@ -612,15 +527,14 @@ export const getStandings = async (req, res) => {
       .order("losses", { ascending: true })
       .order("elo_rating", { ascending: false });
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get Standings Error:", error.message);
-    res.status(500).json({ message: "Error fetching standings." });
+    next(error);
   }
 };
 
-export const getMatchDetails = async (req, res) => {
+export const getMatchDetails = async (req, res, next) => {
   const { id: match_id } = req.params;
   try {
     const { data: match, error: matchError } = await supabase
@@ -631,19 +545,18 @@ export const getMatchDetails = async (req, res) => {
       .eq("id", match_id)
       .single();
 
-    if (matchError) throw matchError;
+    if (matchError) return next(matchError);
     if (!match) {
       return res.status(404).json({ message: "Match not found." });
     }
 
     res.status(200).json(match);
   } catch (error) {
-    console.error("Get Match Details Error:", error.message);
-    res.status(500).json({ message: "Error fetching match details." });
+    next(error);
   }
 };
 
-export const logMatchResult = async (req, res) => {
+export const logMatchResult = async (req, res, next) => {
   const { id: match_id } = req.params;
   const { team1_score, team2_score, player_stats, match_date, round_name } =
     req.body;
@@ -662,7 +575,7 @@ export const logMatchResult = async (req, res) => {
       .eq("id", match_id)
       .single();
 
-    if (matchError) throw matchError;
+    if (matchError) return next(matchError);
     if (!match) return res.status(404).json({ message: "Match not found." });
 
     const wasCompleted = match.status === "completed";
@@ -710,11 +623,10 @@ export const logMatchResult = async (req, res) => {
       p_winner_advances_to_slot: match.winner_advances_to_slot,
     });
 
-    if (rpcError) throw rpcError;
+    if (rpcError) return next(rpcError);
 
     res.status(200).json({ message: "Match result logged successfully." });
   } catch (error) {
-    console.error("Log Match Result Error:", error.message);
-    res.status(500).json({ message: "Error logging match result." });
+    next(error);
   }
 };

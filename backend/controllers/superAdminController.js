@@ -12,7 +12,7 @@ const TABLES_TO_BACKUP = [
   "collaborators",
 ];
 
-export const getPendingUsers = async (req, res) => {
+export const getPendingUsers = async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from("users")
@@ -20,15 +20,14 @@ export const getPendingUsers = async (req, res) => {
       .eq("status", "pending_approval")
       .order("created_at", { ascending: true });
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get Pending Users Error:", error.message);
-    res.status(500).json({ message: "Error fetching pending users." });
+    next(error);
   }
 };
 
-export const approveUser = async (req, res) => {
+export const approveUser = async (req, res, next) => {
   const { id } = req.params;
   try {
     const { data: user, error } = await supabase
@@ -39,7 +38,7 @@ export const approveUser = async (req, res) => {
       .select("id, name, email")
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
     if (!user) {
       return res
         .status(404)
@@ -58,27 +57,25 @@ export const approveUser = async (req, res) => {
 
     res.status(200).json({ message: "User approved and email sent." });
   } catch (error) {
-    console.error("Approve User Error:", error.message);
-    res.status(500).json({ message: "Error approving user." });
+    next(error);
   }
 };
 
-export const getAllUsers = async (req, res) => {
+export const getAllUsers = async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from("users")
       .select("id, name, email, role, status, created_at, otp_enabled")
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get All Users Error:", error.message);
-    res.status(500).json({ message: "Error fetching users." });
+    next(error);
   }
 };
 
-export const manageUserRole = async (req, res) => {
+export const manageUserRole = async (req, res, next) => {
   const { id } = req.params;
   const { role } = req.body;
 
@@ -100,7 +97,7 @@ export const manageUserRole = async (req, res) => {
       .select("id, role")
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
     if (!data) {
       return res.status(404).json({ message: "User not found." });
     }
@@ -109,12 +106,11 @@ export const manageUserRole = async (req, res) => {
       .status(200)
       .json({ message: `User role updated to ${role}.`, user: data });
   } catch (error) {
-    console.error("Manage User Role Error:", error.message);
-    res.status(500).json({ message: "Error updating user role." });
+    next(error);
   }
 };
 
-export const manageUserStatus = async (req, res) => {
+export const manageUserStatus = async (req, res, next) => {
   const { id } = req.params;
   const { status } = req.body;
 
@@ -138,7 +134,7 @@ export const manageUserStatus = async (req, res) => {
       .select("id, status")
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
     if (!data) {
       return res.status(404).json({ message: "User not found." });
     }
@@ -147,12 +143,11 @@ export const manageUserStatus = async (req, res) => {
       .status(200)
       .json({ message: `User status updated to ${status}.`, user: data });
   } catch (error) {
-    console.error("Manage User Status Error:", error.message);
-    res.status(500).json({ message: "Error updating user status." });
+    next(error);
   }
 };
 
-export const deleteUser = async (req, res) => {
+export const deleteUser = async (req, res, next) => {
   const { id } = req.params;
 
   if (id === req.user.userId) {
@@ -169,32 +164,31 @@ export const deleteUser = async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) return next(error);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
     res.status(200).json({ message: "User deleted successfully." });
   } catch (error) {
-    console.error("Delete User Error:", error.message);
     if (error.code === "23503") {
       return res.status(409).json({
         message:
           "Cannot delete user. They are still the owner of a tournament or backup record. Please reassign ownership or delete those records first.",
       });
     }
-    res.status(500).json({ message: "Error deleting user." });
+    next(error);
   }
 };
 
-export const createBackup = async (req, res) => {
+export const createBackup = async (req, res, next) => {
   const backupData = {};
   const { userId } = req.user;
 
   try {
     for (const table of TABLES_TO_BACKUP) {
       const { data, error } = await supabase.from(table).select("*");
-      if (error) throw error;
+      if (error) return next(error);
       backupData[table] = data;
     }
 
@@ -210,7 +204,7 @@ export const createBackup = async (req, res) => {
         upsert: true,
       });
 
-    if (uploadError) throw uploadError;
+    if (uploadError) return next(uploadError);
 
     const { error: dbError } = await supabase.from("data_backups").insert({
       created_by: userId,
@@ -218,31 +212,29 @@ export const createBackup = async (req, res) => {
       storage_path: storagePath,
     });
 
-    if (dbError) throw dbError;
+    if (dbError) return next(dbError);
 
     res.status(201).json({ message: "Backup created successfully." });
   } catch (error) {
-    console.error("Create Backup Error:", error.message);
-    res.status(500).json({ message: "Error creating backup." });
+    next(error);
   }
 };
 
-export const getBackups = async (req, res) => {
+export const getBackups = async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from("data_backups")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) throw error;
+    if (error) return next(error);
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get Backups Error:", error.message);
-    res.status(500).json({ message: "Error fetching backups." });
+    next(error);
   }
 };
 
-export const restoreBackup = async (req, res) => {
+export const restoreBackup = async (req, res, next) => {
   const { storagePath } = req.body;
   if (!storagePath) {
     return res.status(400).json({ message: "Storage path is required." });
@@ -253,7 +245,7 @@ export const restoreBackup = async (req, res) => {
       .from(BUCKET_NAME)
       .download(storagePath);
 
-    if (downloadError) throw downloadError;
+    if (downloadError) return next(downloadError);
 
     const backupData = JSON.parse(await file.text());
 
@@ -269,16 +261,13 @@ export const restoreBackup = async (req, res) => {
       if (data && data.length > 0) {
         const { error: insertError } = await supabase.from(table).insert(data);
         if (insertError) {
-          throw new Error(
-            `Failed to restore table ${table}: ${insertError.message}`
-          );
+          return next(insertError);
         }
       }
     }
 
     res.status(200).json({ message: "Database restored successfully." });
   } catch (error) {
-    console.error("Restore Backup Error:", error.message);
-    res.status(500).json({ message: "Error restoring backup." });
+    next(error);
   }
 };

@@ -13,6 +13,27 @@ const apiClient = axios.create({
 // Axios will now automatically read the 'XSRF-TOKEN' cookie
 // and set the 'X-XSRF-TOKEN' header on state-changing requests.
 
+// Manual interceptor to ensure XSRF token is sent
+apiClient.interceptors.request.use(
+  (config) => {
+    // For state-changing methods, manually add XSRF token from cookie
+    if (
+      ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())
+    ) {
+      const xsrfToken = document.cookie
+        .split('; ')
+        .find((row) => row.startsWith('XSRF-TOKEN='))
+        ?.split('=')[1];
+
+      if (xsrfToken) {
+        config.headers['X-XSRF-TOKEN'] = xsrfToken;
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -53,7 +74,7 @@ if (token) {
 const api = {
   setAuthToken,
   getHealth: async () => {
-    const { data } = await apiClient.get('/api');
+    const { data } = await apiClient.get('');
     return data;
   },
   login: async (email, password) => {

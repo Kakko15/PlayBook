@@ -1,6 +1,6 @@
 import supabase from "../supabaseClient.js";
 
-export const getPublicTournaments = async (req, res) => {
+export const getPublicTournaments = async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from("tournaments")
@@ -13,16 +13,15 @@ export const getPublicTournaments = async (req, res) => {
       .eq("registration_open", true)
       .order("start_date", { ascending: false, nullsFirst: false });
 
-    if (error) throw error;
+    if (error) return next(error);
 
     res.status(200).json(data);
   } catch (error) {
-    console.error("Get Public Tournaments Error:", error.message);
-    res.status(500).json({ message: "Error fetching public tournaments." });
+    next(error);
   }
 };
 
-export const getPublicTournamentDetails = async (req, res) => {
+export const getPublicTournamentDetails = async (req, res, next) => {
   const { id } = req.params;
   try {
     const { data: tournament, error: tournamentError } = await supabase
@@ -31,7 +30,7 @@ export const getPublicTournamentDetails = async (req, res) => {
       .eq("id", id)
       .single();
 
-    if (tournamentError) throw tournamentError;
+    if (tournamentError) return next(tournamentError);
     if (!tournament) {
       return res.status(404).json({ message: "Tournament not found." });
     }
@@ -43,7 +42,7 @@ export const getPublicTournamentDetails = async (req, res) => {
       .order("wins", { ascending: false })
       .order("losses", { ascending: true });
 
-    if (teamsError) throw teamsError;
+    if (teamsError) return next(teamsError);
 
     const { data: matches, error: matchesError } = await supabase
       .from("matches")
@@ -53,7 +52,7 @@ export const getPublicTournamentDetails = async (req, res) => {
       .eq("tournament_id", id)
       .order("match_date", { ascending: true, nullsFirst: true });
 
-    if (matchesError) throw matchesError;
+    if (matchesError) return next(matchesError);
 
     res.status(200).json({
       tournament,
@@ -61,7 +60,6 @@ export const getPublicTournamentDetails = async (req, res) => {
       matches,
     });
   } catch (error) {
-    console.error("Get Public Details Error:", error.message);
-    res.status(500).json({ message: "Error fetching tournament details." });
+    next(error);
   }
 };
