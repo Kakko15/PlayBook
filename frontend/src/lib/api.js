@@ -177,12 +177,7 @@ const api = {
     const { data } = await apiClient.delete('/auth/profile/picture');
     return data;
   },
-  detectFace: async (imageBase64) => {
-    const { data } = await apiClient.post('/auth/profile/detect-face', {
-      imageBase64,
-    });
-    return data;
-  },
+  // The detectFace function has been removed.
 
   createBackup: async () => {
     const { data } = await apiClient.post('/superadmin/system/backup');

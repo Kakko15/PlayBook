@@ -28,10 +28,13 @@ const profileSchema = z.object({
 });
 
 const UserProfileTab = () => {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState(null);
+  const { user, profile, setProfile } = useAuth(); // Get setProfile from useAuth
   const [isLoading, setIsLoading] = useState(false);
   const [isPfpModalOpen, setIsPfpModalOpen] = useState(false);
+
+  // This state holds the user's choice from the modal
+  // undefined = no change, null = remove, 'base64...' = update
+  const [pendingProfilePicture, setPendingProfilePicture] = useState(undefined);
 
   const form = useForm({
     resolver: zodResolver(profileSchema),
@@ -39,25 +42,45 @@ const UserProfileTab = () => {
   });
 
   useEffect(() => {
-    if (user) {
-      api.getProfile().then((data) => {
-        setProfile(data);
-        form.reset({
-          pronouns: data.pronouns || '',
-          about_me: data.about_me || '',
-          phone: data.phone || '',
-        });
+    // profile is now coming from AuthContext, no need to fetch
+    if (profile) {
+      form.reset({
+        pronouns: profile.pronouns || '',
+        about_me: profile.about_me || '',
+        phone: profile.phone || '',
       });
     }
-  }, [user, form]);
+  }, [profile, form]);
 
   const onProfileSubmit = async (values) => {
     setIsLoading(true);
     try {
-      const { message } = await api.updateProfile(values);
-      toast.success(message);
-      const updatedProfile = await api.getProfile();
-      setProfile(updatedProfile);
+      // 1. Update text fields
+      await api.updateProfile(values);
+      toast.success('Profile details saved!');
+
+      // 2. Check if the profile picture was changed
+      if (pendingProfilePicture !== undefined) {
+        if (pendingProfilePicture === null) {
+          // User chose to remove
+          await api.removeProfilePicture();
+          setProfile((prev) => ({ ...prev, profile_picture_url: null }));
+          toast.success('Profile picture removed.');
+        } else {
+          // User uploaded a new picture
+          const { profilePictureUrl } = await api.updateProfilePicture(
+            pendingProfilePicture
+          );
+          setProfile((prev) => ({
+            ...prev,
+            profile_picture_url: profilePictureUrl,
+          }));
+          toast.success('Profile picture updated!');
+        }
+      }
+
+      // 3. Reset pending state
+      setPendingProfilePicture(undefined);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update profile.');
     } finally {
@@ -73,10 +96,19 @@ const UserProfileTab = () => {
       .join('');
   };
 
-  const onPfpSuccess = (newImageUrl) => {
-    setProfile((prev) => ({ ...prev, profile_picture_url: newImageUrl }));
+  const onPfpSuccess = (newImageBase64) => {
+    // This is called by ProfilePictureManager when 'Apply' or 'Remove' is clicked
+    setPendingProfilePicture(newImageBase64); // This is now a base64 string or null
     setIsPfpModalOpen(false);
   };
+
+  // This logic determines what image to show:
+  // 1. If pendingProfilePicture is set (not undefined), show that.
+  // 2. Otherwise, show the current profile picture from the auth context.
+  const displayPicture =
+    pendingProfilePicture !== undefined
+      ? pendingProfilePicture
+      : profile?.profile_picture_url;
 
   return (
     <>
@@ -87,7 +119,7 @@ const UserProfileTab = () => {
 
         <div className='mb-6 flex items-center gap-4'>
           <Avatar className='h-20 w-20'>
-            <AvatarImage src={profile?.profile_picture_url} alt={user?.name} />
+            <AvatarImage src={displayPicture} alt={user?.name} />
             <AvatarFallback className='bg-primary-container text-4xl text-on-primary-container'>
               {getInitials(user?.name)}
             </AvatarFallback>
@@ -167,7 +199,6 @@ const UserProfileTab = () => {
         isOpen={isPfpModalOpen}
         onClose={() => setIsPfpModalOpen(false)}
         onSuccess={onPfpSuccess}
-        currentImageUrl={profile?.profile_picture_url}
       />
     </>
   );

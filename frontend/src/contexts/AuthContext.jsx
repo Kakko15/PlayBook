@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }) => {
     user,
     setUser,
     profile,
-    setProfile,
+    setProfile, // <-- Expose setProfile
     loading,
     login,
     signup,

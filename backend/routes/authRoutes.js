@@ -66,6 +66,6 @@ router.delete(
   defaultLimiter,
   removeProfilePicture
 );
-router.post("/profile/detect-face", protect, uploadLimiter, detectFace);
+// The /profile/detect-face route has been removed.
 
 export default router;

@@ -1,74 +1,105 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import Icon from '@/components/Icon';
-import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import Icon from '@/components/Icon';
 import { cn } from '@/lib/utils';
 
+const getInitials = (name = '') => {
+  return name
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('');
+};
+
 const navItems = [
-  { to: 'my-account', label: 'My Account' },
-  { to: 'profile', label: 'User Profile' },
+  {
+    to: '/account-settings/my-account',
+    icon: 'manage_accounts',
+    label: 'My Account',
+  },
+  {
+    to: '/account-settings/profile',
+    icon: 'account_circle',
+    label: 'User Profile',
+  },
 ];
 
 const AccountSettingsPage = () => {
-  const { logout, user } = useAuth();
+  const { user, profile } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
 
-  const getDashboardLink = () => {
-    return user.role === 'super_admin' ? '/superadmin' : '/admin';
-  };
+  const dashboardPath = user?.role === 'super_admin' ? '/superadmin' : '/admin';
 
   return (
     <div className='flex h-screen min-h-screen w-full bg-background'>
-      <div className='flex h-full w-full p-4 md:p-8 lg:p-12'>
-        <div className='flex w-full overflow-hidden rounded-lg border border-border'>
-          <nav className='hidden w-64 flex-col border-r border-border bg-surface p-6 md:flex'>
-            <div className='space-y-2'>
-              <h3 className='mb-4 px-3 text-lg font-semibold text-foreground'>
-                User Settings
-              </h3>
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex h-10 w-full items-center rounded-md px-3 text-sm font-medium',
-                      isActive
-                        ? 'bg-secondary-container text-on-secondary-container'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                    )
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </div>
-            <Separator className='my-4' />
-            <Button
-              variant='ghost'
-              onClick={logout}
-              className='hover:bg-destructive-container hover:text-on-destructive-container h-10 w-full justify-start rounded-md px-3 text-sm font-medium text-destructive'
-            >
-              Log Out
-            </Button>
-          </nav>
+      <aside className='flex w-80 flex-shrink-0 flex-col border-r border-outline-variant bg-surface p-4'>
+        <div className='flex h-16 items-center px-2'>
+          <Button
+            variant='ghost'
+            size='icon'
+            onClick={() => navigate(dashboardPath)}
+            className='h-14 w-14 rounded-full'
+          >
+            <Icon
+              name='arrow_back'
+              className='text-2xl text-on-surface-variant'
+            />
+          </Button>
+          <span className='ml-4 text-xl font-bold text-on-surface'>
+            Settings
+          </span>
+        </div>
 
-          <div className='relative flex-1 overflow-y-auto'>
-            <Outlet />
-
-            <Button
-              variant='ghost'
-              size='icon'
-              className='absolute right-6 top-6 h-10 w-10 rounded-full border border-border'
-              onClick={() => navigate(getDashboardLink())}
-            >
-              <Icon name='close' />
-              <span className='sr-only'>Close</span>
-            </Button>
+        <div className='mt-6 flex items-center gap-4 rounded-lg bg-surface-variant p-4'>
+          <Avatar className='h-12 w-12'>
+            <AvatarImage src={profile?.profile_picture_url} alt={user?.name} />
+            <AvatarFallback className='bg-primary-container text-on-primary-container'>
+              {getInitials(user?.name)}
+            </AvatarFallback>
+          </Avatar>
+          <div className='overflow-hidden'>
+            <p className='truncate font-semibold text-on-surface-variant'>
+              {user?.name}
+            </p>
+            <p className='truncate text-sm text-on-surface-variant/80'>
+              {user?.email}
+            </p>
           </div>
         </div>
-      </div>
+
+        <nav className='mt-6 flex flex-col gap-1'>
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.to;
+            return (
+              <Button
+                key={item.label}
+                asChild
+                variant='ghost'
+                className={cn(
+                  'h-14 justify-start rounded-full px-5 text-base',
+                  isActive
+                    ? 'bg-secondary-container text-on-secondary-container'
+                    : 'text-on-surface-variant hover:bg-accent'
+                )}
+              >
+                <Link to={item.to}>
+                  <Icon
+                    name={item.icon}
+                    className={cn('mr-4 text-2xl', isActive && 'filled')}
+                  />
+                  {item.label}
+                </Link>
+              </Button>
+            );
+          })}
+        </nav>
+      </aside>
+      <main className='flex-1 overflow-y-auto bg-surface-variant/20'>
+        <Outlet />
+      </main>
     </div>
   );
 };

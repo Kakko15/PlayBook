@@ -511,7 +511,9 @@ export const generateOtpSecret = async (req, res, next) => {
       if (error) return next(error);
     }
 
-    const otpauthUrl = `otpauth://totp/PlayBook:${encodeURIComponent(email)}?secret=${secretBase32}&issuer=PlayBook`;
+    const otpauthUrl = `otpauth://totp/PlayBook:${encodeURIComponent(
+      email
+    )}?secret=${secretBase32}&issuer=PlayBook`;
 
     res.status(200).json({
       secret: secretBase32,
@@ -910,13 +912,15 @@ export const updateProfile = async (req, res, next) => {
   }
 };
 
-const MAX_BASE64_SIZE = 7000000; // ~5MB (5 * 1024 * 1024 * 1.33)
+const MAX_BASE64_SIZE = 7000000; // ~5MB
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/jpg"];
 
 export const updateProfilePicture = async (req, res, next) => {
   const { userId } = req.user;
   const { imageBase64 } = req.body;
 
+  // The frontend now performs face validation *before* calling this endpoint.
+  // We just do basic validation here as a fallback.
   if (!imageBase64) {
     return res.status(400).json({ message: "Image data is required." });
   }
@@ -970,98 +974,11 @@ export const removeProfilePicture = async (req, res, next) => {
   }
 };
 
+// This function is no longer used by the frontend and can be safely removed.
+// We are keeping it here, but it is deprecated.
 export const detectFace = async (req, res, next) => {
-  const { imageBase64 } = req.body;
-  const apiKey = process.env.FACEPLUSPLUS_API_KEY;
-  const apiSecret = process.env.FACEPLUSPLUS_API_SECRET;
-
-  if (!apiKey || !apiSecret) {
-    return res
-      .status(500)
-      .json({ message: "Face detection is misconfigured." });
-  }
-
-  if (!imageBase64) {
-    return res.status(400).json({ message: "Image data is required." });
-  }
-
-  if (imageBase64.length > MAX_BASE64_SIZE) {
-    return res.status(413).json({ message: "Image file is too large." });
-  }
-
-  try {
-    const base64Data = imageBase64.replace(
-      /^data:image\/(png|jpeg|jpg);base64,/,
-      ""
-    );
-
-    const params = new URLSearchParams();
-    params.append("api_key", apiKey);
-    params.append("api_secret", apiSecret);
-    params.append("image_base64", base64Data);
-    params.append("return_attributes", "gender,age,facequality");
-    params.append("return_landmark", "1"); // Get facial landmarks for better validation
-
-    const response = await axios.post(
-      "https://api-us.faceplusplus.com/facepp/v3/detect",
-      params,
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      }
-    );
-
-    const faces = response.data?.faces;
-
-    if (!faces || !Array.isArray(faces) || faces.length === 0) {
-      return res.status(200).json({
-        faceFound: false,
-        message: "No face detected. Please upload a clear photo of yourself.",
-      });
-    }
-
-    const face = faces[0];
-    const faceQuality = face.attributes?.facequality?.value || 0;
-    const confidence = face.confidence || 0;
-    const age = face.attributes?.age?.value;
-
-    console.log("Face detection result:", {
-      faceQuality,
-      confidence,
-      age,
-      threshold: face.attributes?.facequality?.threshold,
-    });
-
-    // Validate based on face quality only (confidence is often 0 from Face++ API)
-    // Quality threshold of 30 helps filter out animal faces
-    if (faceQuality < 30) {
-      return res.status(200).json({
-        faceFound: false,
-        message: "Please upload a clear, well-lit photo of your face.",
-      });
-    }
-
-    // Additional check: age should be reasonable for a human (5-100)
-    if (age && (age < 5 || age > 100)) {
-      return res.status(200).json({
-        faceFound: false,
-        message: "Please upload a photo of a human face.",
-      });
-    }
-
-    // Accept the face
-    const isGoodQuality = faceQuality >= 70 && confidence >= 85;
-
-    res.status(200).json({
-      faceFound: true,
-      message: isGoodQuality
-        ? "Face detected successfully."
-        : "Face detected. Quality could be better, but acceptable.",
-      quality: faceQuality,
-      confidence: confidence,
-    });
-  } catch (error) {
-    next(error);
-  }
+  res.status(410).json({
+    faceFound: false,
+    message: "This endpoint is deprecated. Face detection is now client-side.",
+  });
 };
