@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { MailCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -13,11 +12,8 @@ const CheckEmailPage = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className='mb-8 flex justify-center'>
-          <Logo size='md' />
-        </div>
-
         <motion.div
+          className='mb-8'
           animate={{ scale: [1, 1.1, 1] }}
           transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
         >

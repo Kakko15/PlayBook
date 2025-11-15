@@ -164,19 +164,11 @@ function App() {
           />
           <Route
             path='/auth/callback/discord'
-            element={
-              <PageLayout>
-                <DiscordCallbackPage />
-              </PageLayout>
-            }
+            element={<DiscordCallbackPage />}
           />
           <Route
             path='/auth/callback/google'
-            element={
-              <PageLayout>
-                <GoogleCallbackPage />
-              </PageLayout>
-            }
+            element={<GoogleCallbackPage />}
           />
 
           <Route

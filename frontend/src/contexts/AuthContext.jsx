@@ -12,6 +12,15 @@ export const AuthProvider = ({ children }) => {
   const fetchProfile = async () => {
     try {
       const profileData = await api.getProfile();
+      if (!profileData) {
+        // This handles the "zombie session" where the user is deleted
+        // but the token is still in localStorage.
+        console.error(
+          'AuthContext: No profile found for logged-in user. Forcing logout.'
+        );
+        logout();
+        return;
+      }
       setProfile(profileData);
     } catch (error) {
       console.error('Failed to fetch profile in context', error);

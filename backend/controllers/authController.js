@@ -515,6 +515,12 @@ export const generateOtpSecret = async (req, res, next) => {
 
     if (fetchError) return next(fetchError);
 
+    if (!existingUser) {
+      return res
+        .status(404)
+        .json({ message: "User for this token not found." });
+    }
+
     let secretBase32;
 
     if (existingUser.otp_secret && !existingUser.otp_enabled) {
