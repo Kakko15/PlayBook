@@ -30,6 +30,7 @@ import SuperAdminDashboard from '@/pages/SuperAdmin/SuperAdminDashboard';
 import UserManagementPage from '@/pages/SuperAdmin/UserManagementPage';
 import SystemManagementPage from '@/pages/SuperAdmin/SystemManagementPage';
 import AnalyticsPage from '@/pages/SuperAdmin/AnalyticsPage';
+import ActivityLogPage from '@/pages/SuperAdmin/ActivityLogPage';
 
 import AccountSettingsPage from '@/pages/Account/AccountSettingsPage';
 import MyAccountTab from '@/pages/Account/MyAccountTab';
@@ -205,6 +206,7 @@ function App() {
             <Route path='users' element={<UserManagementPage />} />
             <Route path='system' element={<SystemManagementPage />} />
             <Route path='analytics' element={<AnalyticsPage />} />
+            <Route path='activity' element={<ActivityLogPage />} />
           </Route>
 
           <Route

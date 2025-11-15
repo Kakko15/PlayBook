@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { motion } from 'framer-motion';
+import { motion, Reorder } from 'framer-motion';
 import { containerVariants, itemVariants } from '@/lib/animations';
 import { StatCard } from '@/components/dashboard/StatCard';
 import NeedsAction from '@/components/dashboard/NeedsAction';
@@ -52,7 +52,9 @@ const SuperAdminDashboard = () => {
       setBackups(backupData);
       setTournaments(tournamentData);
     } catch (error) {
-      toast.error('Failed to fetch dashboard data.');
+      toast.error(
+        error.response?.data?.message || 'Failed to fetch dashboard data.'
+      );
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -123,19 +125,32 @@ const SuperAdminDashboard = () => {
                 <CardTitle>Recent Tournaments</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className='flex flex-col gap-3'>
+                <motion.div
+                  className='flex flex-col gap-3'
+                  variants={containerVariants}
+                  initial='hidden'
+                  animate='show'
+                >
                   {isLoading ? (
                     <>
                       <TournamentListItemSkeleton />
                       <TournamentListItemSkeleton />
                     </>
                   ) : recentTournaments.length > 0 ? (
-                    recentTournaments.map((tournament) => (
-                      <TournamentListItem
-                        key={tournament.id}
-                        tournament={tournament}
-                      />
-                    ))
+                    <Reorder.Group
+                      as='div'
+                      axis='y'
+                      values={recentTournaments}
+                      onReorder={() => {}}
+                      className='flex flex-col gap-3'
+                    >
+                      {recentTournaments.map((tournament) => (
+                        <TournamentListItem
+                          key={tournament.id}
+                          tournament={tournament}
+                        />
+                      ))}
+                    </Reorder.Group>
                   ) : (
                     <div className='flex h-32 flex-col items-center justify-center rounded-lg border-2 border-dashed border-outline-variant bg-surface'>
                       <Icon
@@ -147,7 +162,7 @@ const SuperAdminDashboard = () => {
                       </p>
                     </div>
                   )}
-                </div>
+                </motion.div>
               </CardContent>
             </Card>
           </motion.div>

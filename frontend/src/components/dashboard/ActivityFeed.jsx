@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { USER_ROLES } from '@/lib/constants';
+import { useNavigate } from 'react-router-dom';
 
 const formatTimeAgo = (dateString) => {
   const date = new Date(dateString);
@@ -50,6 +51,7 @@ const ActivityFeed = () => {
   const { user } = useAuth();
   const [activity, setActivity] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   const isSuperAdmin = user.role === USER_ROLES.SUPER_ADMIN;
 
@@ -104,7 +106,7 @@ const ActivityFeed = () => {
           <Button
             variant='outline'
             className='mt-2 w-full'
-            onClick={() => toast('This will lead to the Activity Log page.')}
+            onClick={() => navigate('/superadmin/activity')}
           >
             View All Activity
           </Button>

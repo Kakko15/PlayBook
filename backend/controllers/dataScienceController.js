@@ -1,27 +1,72 @@
 import supabase from "../supabaseClient.js";
 
 export const getGlobalAnalytics = async (req, res, next) => {
+  console.log("\n[getGlobalAnalytics] Function Start");
+
+  let archetypes, model;
+
   try {
-    const { data: archetypes, error: archetypeError } = await supabase
-      .from("players")
-      .select("game, archetype, count:id")
-      .neq("archetype", null)
-      .groupBy("game, archetype");
+    console.log("[getGlobalAnalytics] Calling RPC 'get_archetype_counts'...");
+    const { data: rpcData, error: archetypeError } = await supabase.rpc(
+      "get_archetype_counts"
+    );
 
-    if (archetypeError) return next(archetypeError);
+    if (archetypeError) {
+      console.error(
+        "!!! [getGlobalAnalytics] Supabase Archetype RPC Error:",
+        archetypeError
+      );
+      return res.status(500).json({
+        message: "Failed to get archetype data from RPC.",
+        error: archetypeError.message,
+      });
+    }
+    console.log("[getGlobalAnalytics] RPC 'get_archetype_counts' successful.");
+    archetypes = rpcData;
+  } catch (rpcCatchError) {
+    console.error(
+      "!!! [getGlobalAnalytics] UNHANDLED RPC CATCH BLOCK ERROR:",
+      rpcCatchError
+    );
+    return res.status(500).json({
+      message: "An unexpected error occurred trying to call the RPC.",
+      error: rpcCatchError.message,
+    });
+  }
 
-    const { data: model, error: modelError } = await supabase
+  try {
+    console.log("[getGlobalAnalytics] Fetching 'model_coefficients'...");
+    const { data: modelData, error: modelError } = await supabase
       .from("model_coefficients")
       .select("model_name, coefficients, updated_at")
       .eq("model_name", "win_predictor")
       .maybeSingle();
 
-    if (modelError) return next(modelError);
-
-    res.status(200).json({ archetypes, winPredictor: model });
-  } catch (error) {
-    next(error);
+    if (modelError) {
+      console.error(
+        "!!! [getGlobalAnalytics] Supabase Model Error:",
+        modelError
+      );
+      return res.status(500).json({
+        message: "Failed to get model data.",
+        error: modelError.message,
+      });
+    }
+    console.log("[getGlobalAnalytics] 'model_coefficients' fetch successful.");
+    model = modelData;
+  } catch (modelCatchError) {
+    console.error(
+      "!!! [getGlobalAnalytics] UNHANDLED MODEL CATCH BLOCK ERROR:",
+      modelCatchError
+    );
+    return res.status(500).json({
+      message: "An unexpected error occurred trying to fetch the model.",
+      error: modelCatchError.message,
+    });
   }
+
+  console.log("[getGlobalAnalytics] Function Success. Sending 200 response.");
+  res.status(200).json({ archetypes, winPredictor: model });
 };
 
 export const trainArchetypeModel = async (req, res, next) => {

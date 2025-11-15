@@ -365,6 +365,11 @@ const api = {
     const { data } = await apiClient.get('/activity/recent?limit=5');
     return data;
   },
+
+  getAllActivity: async () => {
+    const { data } = await apiClient.get('/activity/all');
+    return data;
+  },
 };
 
 export default api;

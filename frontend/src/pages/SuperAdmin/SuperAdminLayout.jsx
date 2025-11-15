@@ -18,6 +18,7 @@ const navItems = [
   { to: '/superadmin/users', icon: 'group', label: 'User Management' },
   { to: '/superadmin/system', icon: 'settings', label: 'System' },
   { to: '/superadmin/analytics', icon: 'analytics', label: 'Analytics' },
+  { to: '/superadmin/activity', icon: 'manage_history', label: 'Activity Log' },
 ];
 
 const SuperAdminLayout = () => {

@@ -34,7 +34,7 @@ export const approveUser = async (req, res, next) => {
       .from("users")
       .update({ status: "active" })
       .eq("id", id)
-      .eq("status", "pending")
+      .eq("status", "pending_approval")
       .select("id, name, email")
       .single();
 
