@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -11,15 +11,17 @@ import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { OTP_LENGTH } from '@/lib/constants';
 import { navigateAfterLogin } from '@/lib/authUtils';
+import { cn } from '@/lib/utils';
 
 const OtpSetupPage = () => {
   const [secret, setSecret] = useState('');
   const [qrCodeUrl, setQrCodeUrl] = useState('');
-  const [token, setToken] = useState('');
+  const [otp, setOtp] = useState(new Array(OTP_LENGTH).fill(''));
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
+  const inputRefs = useRef([]);
 
   useEffect(() => {
     const generateSecret = async () => {
@@ -36,6 +38,12 @@ const OtpSetupPage = () => {
     generateSecret();
   }, []);
 
+  useEffect(() => {
+    if (!isLoading && inputRefs.current[0]) {
+      inputRefs.current[0].focus();
+    }
+  }, [isLoading]);
+
   const verifyOtp = async (code) => {
     if (code.length !== OTP_LENGTH) return;
 
@@ -43,7 +51,6 @@ const OtpSetupPage = () => {
     try {
       await api.verifyOtpSetup(code);
 
-      // Update user state to reflect 2FA is now enabled
       const updatedUser = { ...user, otp_enabled: true };
       setUser(updatedUser);
       localStorage.setItem('playbook-user', JSON.stringify(updatedUser));
@@ -52,7 +59,8 @@ const OtpSetupPage = () => {
       navigateAfterLogin(user, navigate);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Invalid OTP code.');
-      setToken('');
+      setOtp(new Array(OTP_LENGTH).fill(''));
+      inputRefs.current[0]?.focus();
     } finally {
       setIsVerifying(false);
     }
@@ -60,15 +68,45 @@ const OtpSetupPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await verifyOtp(token);
+    const code = otp.join('');
+    await verifyOtp(code);
   };
 
-  const handleTokenChange = (e) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, OTP_LENGTH);
-    setToken(value);
+  const handleChange = (element, index) => {
+    const value = element.value.replace(/[^0-9]/g, '');
+    if (!value) return;
 
-    if (value.length === OTP_LENGTH) {
-      verifyOtp(value);
+    const newOtp = [...otp];
+    newOtp[index] = value[value.length - 1];
+    setOtp(newOtp);
+
+    const code = newOtp.join('');
+    if (code.length === OTP_LENGTH) {
+      verifyOtp(code);
+    } else if (index < OTP_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (e, index) => {
+    if (e.key === 'Backspace') {
+      if (otp[index] !== '') {
+        const newOtp = [...otp];
+        newOtp[index] = '';
+        setOtp(newOtp);
+      } else if (index > 0) {
+        inputRefs.current[index - 1]?.focus();
+      }
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const paste = e.clipboardData.getData('text').replace(/[^0-9]/g, '');
+    if (paste.length === OTP_LENGTH) {
+      const newOtp = paste.split('');
+      setOtp(newOtp);
+      verifyOtp(paste);
     }
   };
 
@@ -117,24 +155,32 @@ const OtpSetupPage = () => {
         </div>
 
         <form onSubmit={handleSubmit} className='mt-8 space-y-6'>
-          <div className='text-left'>
-            <Label htmlFor='token'>Verification Code</Label>
-            <div className='mt-2'>
-              <Input
-                id='token'
-                name='token'
-                type='text'
-                inputMode='numeric'
-                pattern='[0-9]*'
-                autoComplete='one-time-code'
-                autoFocus
-                required
-                value={token}
-                onChange={handleTokenChange}
-                disabled={isVerifying || isLoading}
-                maxLength={OTP_LENGTH}
-                className='text-center text-lg tracking-[0.3em]'
-              />
+          <div className='space-y-2 text-left'>
+            <Label htmlFor='otp-0' className='sr-only'>
+              Verification Code
+            </Label>
+            <div className='flex justify-center gap-2' onPaste={handlePaste}>
+              {otp.map((data, index) => (
+                <Input
+                  key={index}
+                  id={`otp-${index}`}
+                  type='text'
+                  inputMode='numeric'
+                  pattern='[0-9]'
+                  maxLength={1}
+                  value={data}
+                  onChange={(e) => handleChange(e.target, index)}
+                  onKeyDown={(e) => handleKeyDown(e, index)}
+                  onFocus={(e) => e.target.select()}
+                  ref={(el) => (inputRefs.current[index] = el)}
+                  disabled={isVerifying || isLoading}
+                  className={cn(
+                    'h-14 w-12 rounded-lg text-center text-2xl font-semibold',
+                    (isVerifying || isLoading) && 'opacity-50'
+                  )}
+                  autoFocus={index === 0}
+                />
+              ))}
             </div>
           </div>
 
@@ -142,7 +188,9 @@ const OtpSetupPage = () => {
             <Button
               type='submit'
               className='w-full'
-              disabled={isVerifying || isLoading}
+              disabled={
+                isVerifying || isLoading || otp.join('').length < OTP_LENGTH
+              }
             >
               {isVerifying && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
               {isVerifying ? 'Verifying...' : 'Verify & Enable'}

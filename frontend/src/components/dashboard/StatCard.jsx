@@ -11,7 +11,11 @@ const itemVariants = {
 
 const StatCard = ({ title, value, icon, colorClass, onColorClass }) => {
   return (
-    <motion.div variants={itemVariants}>
+    <motion.div
+      variants={itemVariants}
+      whileHover={{ y: -4 }}
+      transition={{ type: 'spring', stiffness: 300 }}
+    >
       <Card
         className={cn(
           'flex flex-row items-center justify-between overflow-hidden rounded-xl p-4',
@@ -37,4 +41,4 @@ const StatCard = ({ title, value, icon, colorClass, onColorClass }) => {
   );
 };
 
-export default StatCard;
+export { StatCard };

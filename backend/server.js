@@ -9,6 +9,7 @@ import tournamentRoutes from "./routes/tournamentRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
 import predictionRoutes from "./routes/predictionRoutes.js";
 import dataScienceRoutes from "./routes/dataScienceRoutes.js";
+import activityRoutes from "./routes/activityRoutes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +35,7 @@ app.use("/api/tournaments", tournamentRoutes);
 app.use("/api/public", publicRoutes);
 app.use("/api/predictions", predictionRoutes);
 app.use("/api/ds", dataScienceRoutes);
+app.use("/api/activity", activityRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });

@@ -32,7 +32,11 @@ const ActionItem = ({ icon, title, description, to, colorClass }) => (
   </Link>
 );
 
-const NeedsAction = ({ pendingUsers = [] }) => {
+const NeedsAction = ({
+  pendingUsers = [],
+  pendingMatches = [],
+  analytics = null,
+}) => {
   const { user } = useAuth();
   const isSuperAdmin = user.role === USER_ROLES.SUPER_ADMIN;
 
@@ -40,13 +44,41 @@ const NeedsAction = ({ pendingUsers = [] }) => {
 
   if (isSuperAdmin && pendingUsers.length > 0) {
     actions.push({
-      id: 1,
+      id: 'users',
       icon: 'how_to_reg',
       title: `Approve ${pendingUsers.length} New User${pendingUsers.length > 1 ? 's' : ''}`,
       description: `${pendingUsers[0].email} ${pendingUsers.length > 1 ? `+ ${pendingUsers.length - 1} more` : ''}`,
       to: '/superadmin/users',
       colorClass: 'bg-primary-container text-on-primary-container',
     });
+  }
+
+  if (pendingMatches.length > 0) {
+    actions.push({
+      id: 'matches',
+      icon: 'pending_actions',
+      title: `Log ${pendingMatches.length} Overdue Match Result${pendingMatches.length > 1 ? 's' : ''}`,
+      description: 'Log results to update standings.',
+      to: `/admin/tournament/${pendingMatches[0].tournament_id}`,
+      colorClass: 'bg-secondary-container text-on-secondary-container',
+    });
+  }
+
+  if (isSuperAdmin && analytics?.winPredictor) {
+    const lastUpdated = new Date(analytics.winPredictor.updated_at);
+    const now = new Date();
+    const daysSinceUpdate = (now - lastUpdated) / (1000 * 60 * 60 * 24);
+
+    if (daysSinceUpdate > 7) {
+      actions.push({
+        id: 'models',
+        icon: 'model_training',
+        title: 'Data Models are Stale',
+        description: `Models last trained ${Math.floor(daysSinceUpdate)} days ago.`,
+        to: '/superadmin/system',
+        colorClass: 'bg-tertiary-container text-on-tertiary-container',
+      });
+    }
   }
 
   return (

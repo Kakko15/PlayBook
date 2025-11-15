@@ -31,6 +31,15 @@ export const createTournament = async (req, res) => {
 
     if (collaboratorError) throw collaboratorError;
 
+    await supabase.rpc("log_activity", {
+      p_icon: "emoji_events",
+      p_color: "text-yellow-600",
+      p_title: "Tournament Created",
+      p_description: `"${name}" was created.`,
+      p_tournament_id: tournament.id,
+      p_user_id: ownerId,
+    });
+
     res.status(201).json(tournament);
   } catch (error) {
     console.error("Create Tournament Error:", error.message);
@@ -156,6 +165,7 @@ export const getTeams = async (req, res) => {
 export const addTeam = async (req, res) => {
   const { tournamentId } = req.params;
   const { name, logo_url } = req.body;
+  const { userId } = req.user;
 
   if (!name) {
     return res.status(400).json({ message: "Team name is required." });
@@ -173,6 +183,16 @@ export const addTeam = async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    await supabase.rpc("log_activity", {
+      p_icon: "group_add",
+      p_color: "text-blue-600",
+      p_title: "New Team Added",
+      p_description: `"${name}" joined a tournament.`,
+      p_tournament_id: tournamentId,
+      p_user_id: userId,
+    });
+
     res.status(201).json(data);
   } catch (error) {
     console.error("Add Team Error:", error.message);
@@ -299,6 +319,7 @@ export const deletePlayer = async (req, res) => {
 
 export const generateSchedule = async (req, res) => {
   const { id: tournament_id } = req.params;
+  const { userId } = req.user;
 
   try {
     const { data: teams, error: teamsError } = await supabase
@@ -329,6 +350,15 @@ export const generateSchedule = async (req, res) => {
       .insert(matchesToInsert);
 
     if (insertError) throw insertError;
+
+    await supabase.rpc("log_activity", {
+      p_icon: "calendar_month",
+      p_color: "text-purple-600",
+      p_title: "Schedule Generated",
+      p_description: `A new schedule was generated for a tournament.`,
+      p_tournament_id: tournament_id,
+      p_user_id: userId,
+    });
 
     res.status(201).json({ message: "Schedule generated successfully." });
   } catch (error) {
@@ -519,6 +549,7 @@ export const logMatchResult = async (req, res) => {
   const { id: match_id } = req.params;
   const { team1_score, team2_score, player_stats, match_date, round_name } =
     req.body;
+  const { userId } = req.user;
 
   if (team1_score == null || team2_score == null) {
     return res.status(400).json({ message: "Team scores are required." });
@@ -571,7 +602,6 @@ export const logMatchResult = async (req, res) => {
       p_round_name: round_name || match.round_name,
     });
 
-    // --- NEW LOGIC FOR WIN STREAKS ---
     await supabase
       .from("teams")
       .increment("win_streak", 1)
@@ -581,7 +611,6 @@ export const logMatchResult = async (req, res) => {
       .from("teams")
       .update({ win_streak: 0 })
       .eq("id", matchLoserId);
-    // --- END OF NEW LOGIC ---
 
     if (match.next_match_id && match.winner_advances_to_slot) {
       const update = {};
@@ -624,6 +653,15 @@ export const logMatchResult = async (req, res) => {
     );
 
     if (predictionError) throw predictionError;
+
+    await supabase.rpc("log_activity", {
+      p_icon: "task_alt",
+      p_color: "text-gray-500",
+      p_title: "Match Result Logged",
+      p_description: `${team1.name} (${team1_score}) vs ${team2.name} (${team2_score})`,
+      p_tournament_id: match.tournament_id,
+      p_user_id: userId,
+    });
 
     res.status(200).json({ message: "Match result logged successfully." });
   } catch (error) {

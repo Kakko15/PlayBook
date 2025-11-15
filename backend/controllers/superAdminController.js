@@ -36,7 +36,7 @@ export const approveUser = async (req, res) => {
       .update({ status: "active" })
       .eq("id", id)
       .eq("status", "pending")
-      .select("name, email")
+      .select("id, name, email")
       .single();
 
     if (error) throw error;
@@ -47,6 +47,14 @@ export const approveUser = async (req, res) => {
     }
 
     await sendApprovalEmail(user.email, user.name);
+
+    await supabase.rpc("log_activity", {
+      p_icon: "person_check",
+      p_color: "text-blue-600",
+      p_title: "User Approved",
+      p_description: `Admin ${req.user.email} approved ${user.email}.`,
+      p_user_id: user.id,
+    });
 
     res.status(200).json({ message: "User approved and email sent." });
   } catch (error) {

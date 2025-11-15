@@ -1,15 +1,11 @@
-import { Loader2 } from 'lucide-react';
+import Loader from '@/components/Loader';
 import api from '@/lib/api';
 import { useOAuthCallback } from '@/hooks/useOAuthCallback';
 
 const GoogleCallbackPage = () => {
   useOAuthCallback(api.googleOAuthLogin, 'Google');
 
-  return (
-    <div className='flex min-h-screen items-center justify-center'>
-      <Loader2 className='h-8 w-8 animate-spin text-primary' />
-    </div>
-  );
+  return <Loader />;
 };
 
 export default GoogleCallbackPage;

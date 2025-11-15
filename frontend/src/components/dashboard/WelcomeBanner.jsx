@@ -1,9 +1,10 @@
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import Icon from '@/components/Icon';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -34,7 +35,7 @@ const getGreeting = () => {
   };
 };
 
-const WelcomeBanner = () => {
+const WelcomeBanner = ({ onCreateTournamentClick }) => {
   const { user } = useAuth();
   const firstName = user?.name.split(' ')[0] || 'Admin';
   const { greeting, icon, message } = getGreeting();
@@ -43,7 +44,7 @@ const WelcomeBanner = () => {
     <motion.div variants={itemVariants}>
       <Card
         className={cn(
-          'bg-tertiary-container text-on-tertiary-container relative flex w-full flex-col justify-between overflow-hidden rounded-xl p-6'
+          'bg-tertiary-container text-on-tertiary-container relative flex w-full flex-col justify-between overflow-hidden rounded-xl p-6 md:flex-row md:items-end'
         )}
       >
         <Icon

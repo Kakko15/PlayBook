@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
@@ -8,12 +8,14 @@ import { Label } from '@/components/ui/label';
 import Logo from '@/components/Logo';
 import { Loader2 } from 'lucide-react';
 import { OTP_LENGTH } from '@/lib/constants';
+import { cn } from '@/lib/utils';
 
 const OtpVerifyPage = () => {
-  const [token, setToken] = useState('');
+  const [otp, setOtp] = useState(new Array(OTP_LENGTH).fill(''));
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const navigate = useNavigate();
+  const inputRefs = useRef([]);
 
   useEffect(() => {
     const storedEmail = sessionStorage.getItem('playbook-otp-email');
@@ -24,12 +26,20 @@ const OtpVerifyPage = () => {
     }
   }, [navigate]);
 
-  if (!email) {
-    return null;
-  }
+  useEffect(() => {
+    if (email && inputRefs.current[0]) {
+      inputRefs.current[0].focus();
+    }
+  }, [email]);
 
   const verifyOtp = async (code) => {
     if (code.length !== OTP_LENGTH) {
+      return;
+    }
+
+    if (!email) {
+      toast.error('Session error. Please try logging in again.');
+      navigate('/login', { replace: true });
       return;
     }
 
@@ -43,39 +53,66 @@ const OtpVerifyPage = () => {
         return;
       }
 
-      // Store credentials in localStorage
       localStorage.setItem('playbook-token', data.token);
       localStorage.setItem('playbook-user', JSON.stringify(data.user));
       api.setAuthToken(data.token);
 
-      // Show success message
       toast.success(`Welcome back, ${data.user.name.split(' ')[0]}!`);
 
-      // Clear the OTP email from session storage
       sessionStorage.removeItem('playbook-otp-email');
 
-      // Use window.location to force a full page reload with new auth state
       const redirectPath =
         data.user.role === 'super_admin' ? '/superadmin' : '/admin';
       window.location.href = redirectPath;
     } catch (error) {
       toast.error(error.response?.data?.message || 'Invalid OTP code.');
-      setToken('');
+      setOtp(new Array(OTP_LENGTH).fill(''));
+      inputRefs.current[0]?.focus();
       setIsLoading(false);
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await verifyOtp(token);
+    const code = otp.join('');
+    await verifyOtp(code);
   };
 
-  const handleTokenChange = (e) => {
-    const value = e.target.value.replace(/\D/g, '').slice(0, OTP_LENGTH);
-    setToken(value);
+  const handleChange = (element, index) => {
+    const value = element.value.replace(/[^0-9]/g, '');
+    if (!value) return;
 
-    if (value.length === OTP_LENGTH && !isLoading) {
-      verifyOtp(value);
+    const newOtp = [...otp];
+    newOtp[index] = value[value.length - 1];
+    setOtp(newOtp);
+
+    const code = newOtp.join('');
+    if (code.length === OTP_LENGTH) {
+      verifyOtp(code);
+    } else if (index < OTP_LENGTH - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (e, index) => {
+    if (e.key === 'Backspace') {
+      if (otp[index] !== '') {
+        const newOtp = [...otp];
+        newOtp[index] = '';
+        setOtp(newOtp);
+      } else if (index > 0) {
+        inputRefs.current[index - 1]?.focus();
+      }
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const paste = e.clipboardData.getData('text').replace(/[^0-9]/g, '');
+    if (paste.length === OTP_LENGTH) {
+      const newOtp = paste.split('');
+      setOtp(newOtp);
+      verifyOtp(paste);
     }
   };
 
@@ -93,29 +130,41 @@ const OtpVerifyPage = () => {
         </p>
 
         <form onSubmit={handleSubmit} className='mt-8 space-y-6'>
-          <div className='text-left'>
-            <Label htmlFor='token'>6-Digit Code</Label>
-            <div className='mt-2'>
-              <Input
-                id='token'
-                name='token'
-                type='text'
-                inputMode='numeric'
-                pattern='[0-9]*'
-                autoComplete='one-time-code'
-                autoFocus
-                required
-                value={token}
-                onChange={handleTokenChange}
-                disabled={isLoading}
-                maxLength={OTP_LENGTH}
-                className='text-center text-2xl tracking-[0.3em]'
-              />
+          <div className='space-y-2'>
+            <Label htmlFor='otp-0' className='sr-only'>
+              6-Digit Code
+            </Label>
+            <div className='flex justify-center gap-2' onPaste={handlePaste}>
+              {otp.map((data, index) => (
+                <Input
+                  key={index}
+                  id={`otp-${index}`}
+                  type='text'
+                  inputMode='numeric'
+                  pattern='[0-9]'
+                  maxLength={1}
+                  value={data}
+                  onChange={(e) => handleChange(e.target, index)}
+                  onKeyDown={(e) => handleKeyDown(e, index)}
+                  onFocus={(e) => e.target.select()}
+                  ref={(el) => (inputRefs.current[index] = el)}
+                  disabled={isLoading || !email}
+                  className={cn(
+                    'h-14 w-12 rounded-lg text-center text-2xl font-semibold',
+                    isLoading && 'opacity-50'
+                  )}
+                  autoFocus={index === 0}
+                />
+              ))}
             </div>
           </div>
 
           <div>
-            <Button type='submit' className='w-full' disabled={isLoading}>
+            <Button
+              type='submit'
+              className='w-full'
+              disabled={isLoading || !email || otp.join('').length < OTP_LENGTH}
+            >
               {isLoading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
               {isLoading ? 'Verifying...' : 'Verify'}
             </Button>

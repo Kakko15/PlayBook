@@ -110,6 +110,14 @@ export const signup = async (req, res) => {
 
     if (insertProfileError) throw insertProfileError;
 
+    await supabase.rpc("log_activity", {
+      p_icon: "how_to_reg",
+      p_color: "text-green-600",
+      p_title: "New User Registered",
+      p_description: `${email} is pending approval.`,
+      p_user_id: newUser.id,
+    });
+
     res.status(201).json({
       message:
         "Registration request successful. Awaiting administrator approval.",
@@ -197,7 +205,6 @@ export const googleOAuth = async (req, res) => {
     let name, email, googleId;
 
     if (code) {
-      // Handle OAuth code flow
       const { tokens } = await googleClient.getToken(code);
       googleClient.setCredentials(tokens);
 
@@ -210,7 +217,6 @@ export const googleOAuth = async (req, res) => {
       email = payload.email;
       googleId = payload.sub;
     } else {
-      // Handle credential (JWT) flow
       const ticket = await googleClient.verifyIdToken({
         idToken: credential,
         audience: process.env.GOOGLE_CLIENT_ID,
@@ -245,6 +251,14 @@ export const googleOAuth = async (req, res) => {
       if (createError) throw createError;
 
       await supabase.from("profiles").insert({ id: newUser.id });
+
+      await supabase.rpc("log_activity", {
+        p_icon: "how_to_reg",
+        p_color: "text-green-600",
+        p_title: "New User Registered (Google)",
+        p_description: `${email} is pending approval.`,
+        p_user_id: newUser.id,
+      });
 
       return res.status(201).json({
         message:
@@ -358,6 +372,14 @@ export const discordOAuth = async (req, res) => {
 
       await supabase.from("profiles").insert({ id: newUser.id });
 
+      await supabase.rpc("log_activity", {
+        p_icon: "how_to_reg",
+        p_color: "text-blue-600",
+        p_title: "New User Registered (Discord)",
+        p_description: `${email} is pending approval.`,
+        p_user_id: newUser.id,
+      });
+
       return res.status(201).json({
         message:
           "Registration request successful. Awaiting administrator approval.",
@@ -410,7 +432,6 @@ export const discordOAuth = async (req, res) => {
 export const generateOtpSecret = async (req, res) => {
   const { userId, email } = req.user;
   try {
-    // Check if user already has a secret and 2FA is not enabled yet
     const { data: existingUser, error: fetchError } = await supabase
       .from("users")
       .select("otp_secret, otp_enabled")
@@ -421,11 +442,9 @@ export const generateOtpSecret = async (req, res) => {
 
     let secretBase32;
 
-    // If user already has a secret and 2FA is not enabled, reuse it
     if (existingUser.otp_secret && !existingUser.otp_enabled) {
       secretBase32 = existingUser.otp_secret;
     } else {
-      // Generate new secret only if no secret exists or 2FA is already enabled (regenerating)
       const secret = speakeasy.generateSecret({
         length: 20,
         name: `PlayBook (${email})`,
@@ -433,7 +452,6 @@ export const generateOtpSecret = async (req, res) => {
       });
       secretBase32 = secret.base32;
 
-      // Save the new secret
       const { error } = await supabase
         .from("users")
         .update({ otp_secret: secretBase32, otp_enabled: false })
@@ -442,7 +460,6 @@ export const generateOtpSecret = async (req, res) => {
       if (error) throw error;
     }
 
-    // Generate the otpauth URL manually
     const otpauthUrl = `otpauth://totp/PlayBook:${encodeURIComponent(email)}?secret=${secretBase32}&issuer=PlayBook`;
 
     res.status(200).json({
