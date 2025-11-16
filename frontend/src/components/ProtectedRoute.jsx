@@ -1,9 +1,14 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import Loader from '@/components/Loader';
 
 const ProtectedRoute = ({ children, role }) => {
-  const { user, logoutPath } = useAuth();
+  const { user, logoutPath, loading } = useAuth();
   const location = useLocation();
+
+  if (loading) {
+    return <Loader />;
+  }
 
   if (!user) {
     return <Navigate to={logoutPath} state={{ from: location }} replace />;

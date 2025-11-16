@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { UserCheck, UserX, Shield, Ban, Trash2, Loader2 } from 'lucide-react';
+import { UserCheck, UserX, Loader2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +14,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alertDialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdownMenu';
+import Icon from '@/components/Icon';
+import { cn } from '@/lib/utils';
+import ResetPasswordModal from '@/components/ResetPasswordModal';
 
 const listVariants = {
   hidden: { opacity: 0 },
@@ -44,6 +54,10 @@ const UserManagementPage = () => {
   // State for Deleting an existing user
   const [userToDelete, setUserToDelete] = useState(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+
+  // State for Resetting Password
+  const [userToReset, setUserToReset] = useState(null);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -173,6 +187,11 @@ const UserManagementPage = () => {
       setActionLoading(null);
       setUserToDelete(null);
     }
+  };
+
+  const handleResetPasswordClick = (user) => {
+    setUserToReset(user);
+    setIsResetModalOpen(true);
   };
 
   if (loading && users.length === 0) {
@@ -370,45 +389,77 @@ const UserManagementPage = () => {
                       </span>
                     </td>
                     <td className='px-4 py-3'>
-                      <div className='flex items-center justify-end gap-2'>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          onClick={() => handleToggleRole(user.id, user.role)}
-                          disabled={actionLoading === user.id}
-                          title={`Change to ${user.role === 'admin' ? 'Super Admin' : 'Admin'}`}
-                        >
-                          <Shield className='h-4 w-4' />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          onClick={() =>
-                            handleToggleStatus(user.id, user.status)
-                          }
-                          disabled={
-                            actionLoading === user.id ||
-                            user.status === 'pending'
-                          }
-                          title={
-                            user.status === 'active' ? 'Suspend' : 'Activate'
-                          }
-                        >
-                          {user.status === 'active' ? (
-                            <Ban className='h-4 w-4 text-orange-600' />
-                          ) : (
-                            <UserCheck className='h-4 w-4 text-green-600' />
-                          )}
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='sm'
-                          onClick={() => handleDeleteClick(user)}
-                          disabled={actionLoading === user.id}
-                          title='Delete user'
-                        >
-                          <Trash2 className='h-4 w-4 text-red-600' />
-                        </Button>
+                      <div className='flex items-center justify-end'>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='h-8 w-8'
+                              disabled={actionLoading === user.id}
+                            >
+                              {actionLoading === user.id ? (
+                                <Loader2 className='h-4 w-4 animate-spin' />
+                              ) : (
+                                <Icon name='more_horiz' className='text-lg' />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align='end'>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleToggleRole(user.id, user.role)
+                              }
+                            >
+                              <Icon
+                                name='military_tech'
+                                className='mr-2 text-lg'
+                              />
+                              {user.role === 'admin'
+                                ? 'Make Super Admin'
+                                : 'Make Admin'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleToggleStatus(user.id, user.status)
+                              }
+                              className={cn(
+                                user.status === 'active'
+                                  ? 'focus:bg-destructive-container text-destructive focus:text-destructive'
+                                  : 'text-green-600 focus:bg-green-100'
+                              )}
+                            >
+                              <Icon
+                                name={
+                                  user.status === 'active'
+                                    ? 'toggle_off'
+                                    : 'toggle_on'
+                                }
+                                className='mr-2 text-lg'
+                              />
+                              {user.status === 'active'
+                                ? 'Suspend Account'
+                                : 'Activate Account'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleResetPasswordClick(user)}
+                            >
+                              <Icon
+                                name='lock_reset'
+                                className='mr-2 text-lg'
+                              />
+                              Reset Password
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteClick(user)}
+                              className='focus:bg-destructive-container text-destructive focus:text-destructive'
+                            >
+                              <Icon name='delete' className='mr-2 text-lg' />
+                              Delete User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </td>
                   </motion.tr>
@@ -466,6 +517,12 @@ const UserManagementPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ResetPasswordModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+        user={userToReset}
+      />
     </div>
   );
 };

@@ -11,13 +11,8 @@ const apiClient = axios.create({
   xsrfHeaderName: 'X-XSRF-TOKEN', // Name of the header to send
 });
 
-// Axios will now automatically read the 'XSRF-TOKEN' cookie
-// and set the 'X-XSRF-TOKEN' header on state-changing requests.
-
-// Manual interceptor to ensure XSRF token is sent
 apiClient.interceptors.request.use(
   (config) => {
-    // For state-changing methods, manually add XSRF token from cookie
     if (
       ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())
     ) {
@@ -158,6 +153,13 @@ const api = {
     );
     return data;
   },
+  resetUserPassword: async (userId, newPassword) => {
+    const { data } = await apiClient.put(
+      `/superadmin/users/reset-password/${userId}`,
+      { newPassword }
+    );
+    return data;
+  },
   googleOAuthLogin: async (code, from) => {
     const { data } = await apiClient.post('/auth/oauth/google', { code, from });
     return data;
@@ -200,7 +202,6 @@ const api = {
     const { data } = await apiClient.delete('/auth/profile/picture');
     return data;
   },
-  // The detectFace function has been removed.
 
   createBackup: async () => {
     const { data } = await apiClient.post('/superadmin/system/backup');

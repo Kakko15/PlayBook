@@ -5,6 +5,8 @@ import {
   sendDeletionEmail,
   sendRejectionEmail,
 } from "../utils/emailService.js";
+import bcrypt from "bcrypt";
+import { validatePassword } from "../utils/validation.js";
 
 const BUCKET_NAME = "backups";
 const TABLES_TO_BACKUP = [
@@ -195,6 +197,43 @@ export const deleteUser = async (req, res, next) => {
           "Cannot delete user. They are still the owner of a tournament or backup record. Please reassign ownership or delete those records first.",
       });
     }
+    next(error);
+  }
+};
+
+export const resetUserPassword = async (req, res, next) => {
+  const { id } = req.params;
+  const { newPassword } = req.body;
+
+  if (id === req.user.userId) {
+    return res
+      .status(403)
+      .json({ message: "Super Admins cannot reset their own password here." });
+  }
+
+  if (!newPassword || !validatePassword(newPassword)) {
+    return res.status(400).json({
+      message:
+        "Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.",
+    });
+  }
+
+  try {
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    const { data: user, error } = await supabase
+      .from("users")
+      .update({ password_hash: passwordHash })
+      .eq("id", id)
+      .select("id, email, name");
+
+    if (error) return next(error);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    res.status(200).json({ message: `Password for ${user[0].email} reset.` });
+  } catch (error) {
     next(error);
   }
 };

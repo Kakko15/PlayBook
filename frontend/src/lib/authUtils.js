@@ -23,9 +23,9 @@ export const navigateAfterLogin = (
   options = { replace: true }
 ) => {
   if (user.role === USER_ROLES.SUPER_ADMIN) {
-    navigate('/superadmin', options);
+    navigate('/superadmin/dashboard', options);
   } else {
-    navigate('/admin', options);
+    navigate('/admin/dashboard', options);
   }
 };
 

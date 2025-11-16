@@ -43,6 +43,8 @@ export default {
         destructive: {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))',
+          container: 'hsl(var(--destructive-container))',
+          'on-container': 'hsl(var(--on-destructive-container))',
         },
         muted: {
           DEFAULT: 'hsl(var(--muted))',

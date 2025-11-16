@@ -116,7 +116,14 @@ function App() {
             path='/login'
             element={
               user ? (
-                <Navigate to='/admin' replace />
+                <Navigate
+                  to={
+                    user.role === 'super_admin'
+                      ? '/superadmin/dashboard'
+                      : '/admin/dashboard'
+                  }
+                  replace
+                />
               ) : (
                 <PageLayout>
                   <LoginPage />
