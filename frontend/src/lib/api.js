@@ -60,14 +60,13 @@ apiClient.interceptors.response.use(
       }
 
       fullLogout();
-      let path = '/login';
       if (message.includes('User not found')) {
-        path = '/deleted';
+        eventBus.dispatch('sessionEnded', { path: '/deleted' });
       } else if (message.includes('suspended')) {
-        path = '/suspended';
+        eventBus.dispatch('sessionEnded', { path: '/suspended' });
+      } else {
+        eventBus.dispatch('sessionExpired');
       }
-
-      eventBus.dispatch('sessionEnded', { path });
     }
     return Promise.reject(error);
   }

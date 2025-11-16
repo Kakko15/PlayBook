@@ -3,15 +3,19 @@ import { useAuth } from '../hooks/useAuth';
 import Loader from '@/components/Loader';
 
 const ProtectedRoute = ({ children, role }) => {
-  const { user, logoutPath, loading } = useAuth();
+  const { user, logoutPath, loading, isSessionExpiredModalOpen } = useAuth();
   const location = useLocation();
 
   if (loading) {
     return <Loader />;
   }
 
-  if (!user) {
+  if (!user && !isSessionExpiredModalOpen) {
     return <Navigate to={logoutPath} state={{ from: location }} replace />;
+  }
+
+  if (!user && isSessionExpiredModalOpen) {
+    return children;
   }
 
   if (!user.otp_enabled) {

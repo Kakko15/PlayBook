@@ -12,6 +12,8 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [logoutPath, setLogoutPath] = useState('/login');
+  const [isSessionExpiredModalOpen, setIsSessionExpiredModalOpen] =
+    useState(false);
 
   const fetchProfile = async () => {
     try {
@@ -113,39 +115,28 @@ export const AuthProvider = ({ children }) => {
       )
       .subscribe();
 
-    // Polling check every 3 seconds to verify user still exists
-    const checkUserStatus = async () => {
-      try {
-        await api.getProfile();
-      } catch (error) {
-        const status = error.response?.status;
-        const message = error.response?.data?.message || '';
-
-        if (status === 401 || status === 403) {
-          if (message.includes('User not found')) {
-            console.log('User account no longer exists (polling check)');
-            toast.error('Your account has been deleted by an administrator.');
-            setLogoutPath('/deleted');
-            eventBus.dispatch('sessionEnded', { path: '/deleted' });
-          } else if (message.includes('suspended')) {
-            console.log('User account suspended (polling check)');
-            toast.error('Your account has been suspended.');
-            setLogoutPath('/suspended');
-            eventBus.dispatch('sessionEnded', { path: '/suspended' });
-          }
-        }
-      }
-    };
-
-    const pollInterval = setInterval(checkUserStatus, 1000);
-
     return () => {
       if (userChannel) {
         supabase.removeChannel(userChannel);
       }
-      clearInterval(pollInterval);
     };
   }, [user]);
+
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setUser(null);
+      setProfile(null);
+      localStorage.removeItem('playbook-token');
+      localStorage.removeItem('playbook-user');
+      sessionStorage.removeItem('playbook-otp-email');
+      api.setAuthToken(null);
+      setIsSessionExpiredModalOpen(true);
+    };
+    eventBus.on('sessionExpired', handleSessionExpired);
+    return () => {
+      eventBus.remove('sessionExpired', handleSessionExpired);
+    };
+  }, []);
 
   const login = async (email, password) => {
     // Ensure CSRF token is fresh before login
@@ -199,6 +190,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     completeOtpLogin,
     isAuthenticated: !!user,
+    isSessionExpiredModalOpen,
+    setIsSessionExpiredModalOpen,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

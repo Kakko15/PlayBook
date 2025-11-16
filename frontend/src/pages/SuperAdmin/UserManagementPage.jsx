@@ -24,6 +24,7 @@ import {
 import Icon from '@/components/Icon';
 import { cn } from '@/lib/utils';
 import ResetPasswordModal from '@/components/ResetPasswordModal';
+import { useAuth } from '@/hooks/useAuth';
 
 const listVariants = {
   hidden: { opacity: 0 },
@@ -46,6 +47,7 @@ const UserManagementPage = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  const { user: currentUser } = useAuth();
 
   // State for Rejecting a pending user
   const [userToReject, setUserToReject] = useState(null);
@@ -428,6 +430,7 @@ const UserManagementPage = () => {
                                   ? 'focus:bg-destructive-container text-destructive focus:text-destructive'
                                   : 'text-green-600 focus:bg-green-100'
                               )}
+                              disabled={user.id === currentUser.id}
                             >
                               <Icon
                                 name={
@@ -454,6 +457,7 @@ const UserManagementPage = () => {
                             <DropdownMenuItem
                               onClick={() => handleDeleteClick(user)}
                               className='focus:bg-destructive-container text-destructive focus:text-destructive'
+                              disabled={user.id === currentUser.id}
                             >
                               <Icon name='delete' className='mr-2 text-lg' />
                               Delete User

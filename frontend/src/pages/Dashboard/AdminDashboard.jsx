@@ -163,6 +163,10 @@ const AdminDashboard = () => {
     fetchData();
   }, [fetchData]);
 
+  if (!user) {
+    return null;
+  }
+
   const handleCreateClick = () => setShowCreateModal(true);
   const handleCreateSuccess = () => {
     setShowCreateModal(false);

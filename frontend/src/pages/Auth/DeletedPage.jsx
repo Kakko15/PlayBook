@@ -31,8 +31,8 @@ const DeletedPage = () => {
           Account Not Found
         </h2>
         <p className='mt-4 text-base text-muted-foreground'>
-          This account may have been deleted by an administrator or the session
-          has expired.
+          This account may have been deleted by an administrator. Please contact
+          support if you believe this is a mistake.
         </p>
         <div className='mt-8'>
           <Button asChild className='w-full'>

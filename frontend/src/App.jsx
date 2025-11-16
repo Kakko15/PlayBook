@@ -12,6 +12,7 @@ import eventBus from '@/lib/eventBus';
 import Loader from '@/components/Loader';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { AnimatePresence, motion } from 'framer-motion';
+import SessionExpiredModal from '@/components/SessionExpiredModal';
 
 import ProtectedRoute from '@/components/ProtectedRoute';
 
@@ -85,6 +86,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      <SessionExpiredModal />
       <AnimatePresence mode='wait'>
         <Routes location={location} key={location.pathname}>
           <Route
