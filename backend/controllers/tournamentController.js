@@ -3,7 +3,7 @@ import { generateRoundRobin, calculateElo } from "../utils/tournamentLogic.js";
 import { sanitize, sanitizeObject } from "../utils/sanitize.js";
 
 export const createTournament = async (req, res, next) => {
-  const { name, game } = req.body;
+  const { name, game, start_date, end_date } = req.body;
   const ownerId = req.user.userId;
 
   if (!name || !game) {
@@ -17,6 +17,8 @@ export const createTournament = async (req, res, next) => {
         name: sanitize(name),
         game: sanitize(game),
         owner_id: ownerId,
+        start_date: start_date || null,
+        end_date: end_date || null,
       })
       .select()
       .single();

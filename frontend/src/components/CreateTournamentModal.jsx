@@ -38,6 +38,8 @@ const formSchema = z.object({
   game: z.enum(['basketball', 'valorant', 'mlbb'], {
     required_error: 'Please select a game.',
   }),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
 });
 
 const gameOptions = {
@@ -55,8 +57,20 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess, tournament }) => {
     defaultValues: {
       name: '',
       game: undefined,
+      start_date: '',
+      end_date: '',
     },
   });
+
+  const toInputDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
+    } catch (e) {
+      return '';
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -64,11 +78,15 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess, tournament }) => {
         form.reset({
           name: tournament.name,
           game: tournament.game,
+          start_date: toInputDate(tournament.start_date),
+          end_date: toInputDate(tournament.end_date),
         });
       } else {
         form.reset({
           name: '',
           game: undefined,
+          start_date: '',
+          end_date: '',
         });
       }
     }
@@ -78,10 +96,20 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess, tournament }) => {
     setIsLoading(true);
     try {
       if (isEditMode) {
-        await api.updateTournament(tournament.id, values);
+        const payload = {
+          ...values,
+          startDate: values.start_date || null,
+          endDate: values.end_date || null,
+        };
+        await api.updateTournament(tournament.id, payload);
         toast.success('Tournament updated successfully!');
       } else {
-        await api.createTournament(values);
+        const payload = {
+          ...values,
+          start_date: values.start_date || null,
+          end_date: values.end_date || null,
+        };
+        await api.createTournament(payload);
         toast.success('Tournament created successfully!');
       }
       onSuccess();
@@ -200,6 +228,36 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess, tournament }) => {
                 </FormItem>
               )}
             />
+
+            <div className='grid grid-cols-2 gap-4'>
+              <FormField
+                control={form.control}
+                name='start_date'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Date (Optional)</FormLabel>
+                    <FormControl>
+                      <Input type='date' disabled={isLoading} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='end_date'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>End Date (Optional)</FormLabel>
+                    <FormControl>
+                      <Input type='date' disabled={isLoading} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
             <DialogFooter>
               <Button
                 type='button'
