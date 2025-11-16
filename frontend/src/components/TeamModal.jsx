@@ -20,13 +20,24 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
+import Icon from '@/components/Icon';
 
 const formSchema = z.object({
   name: z.string().min(2, {
     message: 'Team name must be at least 2 characters.',
+  }),
+  department_id: z.string().min(1, {
+    message: 'Please select a department.',
   }),
   logo_url: z
     .string()
@@ -37,29 +48,45 @@ const formSchema = z.object({
 
 const TeamModal = ({ isOpen, onClose, onSuccess, tournamentId, team }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [departments, setDepartments] = useState([]);
   const isEditMode = !!team;
 
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
+      department_id: '',
       logo_url: '',
     },
   });
 
   useEffect(() => {
-    if (isEditMode && team) {
-      form.reset({
-        name: team.name,
-        logo_url: team.logo_url || '',
-      });
-    } else {
-      form.reset({
-        name: '',
-        logo_url: '',
-      });
+    const fetchDepartments = async () => {
+      try {
+        const data = await api.getDepartments();
+        setDepartments(data);
+      } catch (error) {
+        toast.error('Failed to fetch departments.');
+      }
+    };
+
+    if (isOpen) {
+      fetchDepartments();
+      if (isEditMode && team) {
+        form.reset({
+          name: team.name,
+          department_id: team.department_id || '',
+          logo_url: team.logo_url || '',
+        });
+      } else {
+        form.reset({
+          name: '',
+          department_id: '',
+          logo_url: '',
+        });
+      }
     }
-  }, [isEditMode, team, form]);
+  }, [isOpen, isEditMode, team, form]);
 
   const onSubmit = async (values) => {
     setIsLoading(true);
@@ -115,6 +142,34 @@ const TeamModal = ({ isOpen, onClose, onSuccess, tournamentId, team }) => {
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name='department_id'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Department</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={isLoading || departments.length === 0}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder='Select a department' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept.id} value={dept.id}>
+                          {dept.name} ({dept.acronym})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

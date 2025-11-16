@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import TournamentCard from '@/components/TournamentCard';
 import TournamentCardSkeleton from '@/components/TournamentCardSkeleton';
 import TournamentListItem from '@/components/TournamentListItem';
@@ -12,6 +12,16 @@ import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import Icon from '@/components/Icon';
 import { Input } from '@/components/ui/input';
 import { containerVariants } from '@/lib/animations';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alertDialog';
 
 const TournamentListPage = () => {
   const [tournaments, setTournaments] = useState([]);
@@ -20,6 +30,9 @@ const TournamentListPage = () => {
   const [view, setView] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredTournaments, setFilteredTournaments] = useState([]);
+  const [selectedTournament, setSelectedTournament] = useState(null);
+  const [tournamentToDelete, setTournamentToDelete] = useState(null);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
   const fetchTournaments = useCallback(async () => {
     setIsLoading(true);
@@ -48,6 +61,32 @@ const TournamentListPage = () => {
 
   const handleReorder = (newOrder) => {
     setFilteredTournaments(newOrder);
+  };
+
+  const handleEditClick = (tournament) => {
+    setSelectedTournament(tournament);
+    setShowCreateModal(true);
+  };
+
+  const handleDeleteClick = (tournament) => {
+    setTournamentToDelete(tournament);
+    setIsDeleteAlertOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!tournamentToDelete) return;
+    try {
+      await api.deleteTournament(tournamentToDelete.id);
+      toast.success('Tournament deleted successfully.');
+      fetchTournaments();
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || 'Failed to delete tournament.'
+      );
+    } finally {
+      setIsDeleteAlertOpen(false);
+      setTournamentToDelete(null);
+    }
   };
 
   const renderContent = () => {
@@ -144,6 +183,8 @@ const TournamentListPage = () => {
             <TournamentCard
               key={tournament.id}
               tournament={tournament}
+              onEdit={handleEditClick}
+              onDelete={handleDeleteClick}
               className='w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)]'
             />
           ) : (
@@ -209,7 +250,10 @@ const TournamentListPage = () => {
         <Button
           size='lg'
           className='h-14 rounded-2xl bg-primary-container px-6 py-4 text-base font-medium text-on-primary-container shadow-lg transition-all hover:bg-primary-container/90'
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => {
+            setSelectedTournament(null);
+            setShowCreateModal(true);
+          }}
         >
           <Icon name='add' className='mr-3 text-2xl' />
           Create Tournament
@@ -218,12 +262,38 @@ const TournamentListPage = () => {
 
       <CreateTournamentModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setSelectedTournament(null);
+        }}
         onSuccess={() => {
           setShowCreateModal(false);
+          setSelectedTournament(null);
           fetchTournaments();
         }}
+        tournament={selectedTournament}
       />
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the tournament "
+              {tournamentToDelete?.name}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className={buttonVariants({ variant: 'destructive' })}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

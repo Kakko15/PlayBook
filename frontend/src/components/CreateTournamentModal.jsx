@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -46,8 +46,9 @@ const gameOptions = {
   mlbb: { label: 'Mobile Legends', icon: '/images/ml_logo.png' },
 };
 
-const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
+const CreateTournamentModal = ({ isOpen, onClose, onSuccess, tournament }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const isEditMode = !!tournament;
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -57,16 +58,37 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
     },
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      if (isEditMode && tournament) {
+        form.reset({
+          name: tournament.name,
+          game: tournament.game,
+        });
+      } else {
+        form.reset({
+          name: '',
+          game: undefined,
+        });
+      }
+    }
+  }, [isOpen, isEditMode, tournament, form]);
+
   const onSubmit = async (values) => {
     setIsLoading(true);
     try {
-      await api.createTournament(values);
-      toast.success('Tournament created successfully!');
+      if (isEditMode) {
+        await api.updateTournament(tournament.id, values);
+        toast.success('Tournament updated successfully!');
+      } else {
+        await api.createTournament(values);
+        toast.success('Tournament created successfully!');
+      }
       onSuccess();
-      form.reset();
+      handleClose();
     } catch (error) {
       toast.error(
-        error.response?.data?.message || 'Failed to create tournament.'
+        error.response?.data?.message || 'Failed to process tournament.'
       );
     } finally {
       setIsLoading(false);
@@ -83,10 +105,13 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className='sm:max-w-[425px]'>
         <DialogHeader>
-          <DialogTitle>Create New Tournament</DialogTitle>
+          <DialogTitle>
+            {isEditMode ? 'Edit Tournament' : 'Create New Tournament'}
+          </DialogTitle>
           <DialogDescription>
-            Fill in the details for your new tournament. You can add more
-            details later.
+            {isEditMode
+              ? 'Update the details for your tournament.'
+              : 'Fill in the details for your new tournament. You can add more details later.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -186,7 +211,13 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess }) => {
               </Button>
               <Button type='submit' disabled={isLoading}>
                 {isLoading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-                {isLoading ? 'Creating...' : 'Create'}
+                {isLoading
+                  ? isEditMode
+                    ? 'Saving...'
+                    : 'Creating...'
+                  : isEditMode
+                    ? 'Save Changes'
+                    : 'Create'}
               </Button>
             </DialogFooter>
           </form>

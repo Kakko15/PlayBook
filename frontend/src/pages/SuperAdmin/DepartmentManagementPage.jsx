@@ -1,0 +1,246 @@
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import api from '@/lib/api';
+import toast from 'react-hot-toast';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alertDialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdownMenu';
+import Icon from '@/components/Icon';
+import DepartmentModal from '@/components/DepartmentModal';
+
+const listVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, x: -20 },
+  show: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 100 } },
+  exit: { opacity: 0, x: 20, transition: { duration: 0.2 } },
+};
+
+const DepartmentManagementPage = () => {
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [selectedDept, setSelectedDept] = useState(null);
+  const [deptToDelete, setDeptToDelete] = useState(null);
+
+  const fetchDepartments = useCallback(async () => {
+    try {
+      const data = await api.getDepartments();
+      setDepartments(data);
+    } catch (error) {
+      toast.error('Failed to fetch departments');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDepartments();
+  }, [fetchDepartments]);
+
+  const handleAddClick = () => {
+    setSelectedDept(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditClick = (dept) => {
+    setSelectedDept(dept);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteClick = (dept) => {
+    setDeptToDelete(dept);
+    setIsAlertOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deptToDelete) return;
+    setActionLoading(deptToDelete.id);
+    setIsAlertOpen(false);
+    try {
+      await api.deleteDepartment(deptToDelete.id);
+      toast.success('Department deleted successfully');
+      fetchDepartments();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to delete department');
+    } finally {
+      setActionLoading(null);
+      setDeptToDelete(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className='flex h-64 items-center justify-center'>
+        <Loader2 className='h-8 w-8 animate-spin text-primary' />
+      </div>
+    );
+  }
+
+  return (
+    <div className='p-8'>
+      <div className='flex items-center justify-between'>
+        <div>
+          <h1 className='text-3xl font-bold text-foreground'>
+            Department Management
+          </h1>
+          <p className='mt-2 text-muted-foreground'>
+            Add, edit, or remove university departments.
+          </p>
+        </div>
+        <Button onClick={handleAddClick}>
+          <Icon name='add' className='mr-2' />
+          Add Department
+        </Button>
+      </div>
+
+      <div className='mt-8 rounded-lg border border-border bg-card p-6'>
+        <h2 className='mb-4 text-xl font-semibold text-foreground'>
+          All Departments ({departments.length})
+        </h2>
+        <div className='overflow-x-auto'>
+          <table className='w-full'>
+            <thead>
+              <tr className='border-b border-border'>
+                <th className='px-4 py-3 text-left font-medium text-muted-foreground'>
+                  Name
+                </th>
+                <th className='px-4 py-3 text-left font-medium text-muted-foreground'>
+                  Acronym
+                </th>
+                <th className='px-4 py-3 text-left font-medium text-muted-foreground'>
+                  Elo Rating
+                </th>
+                <th className='px-4 py-3 text-right font-medium text-muted-foreground'>
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <motion.tbody
+              variants={listVariants}
+              initial='hidden'
+              animate='show'
+            >
+              <AnimatePresence>
+                {departments.map((dept) => (
+                  <motion.tr
+                    key={dept.id}
+                    variants={itemVariants}
+                    layout
+                    exit='exit'
+                    className='border-b border-border last:border-b-0 hover:bg-muted/50'
+                  >
+                    <td className='px-4 py-3 font-medium text-foreground'>
+                      {dept.name}
+                    </td>
+                    <td className='px-4 py-3 text-muted-foreground'>
+                      {dept.acronym}
+                    </td>
+                    <td className='px-4 py-3 text-muted-foreground'>
+                      {dept.elo_rating}
+                    </td>
+                    <td className='px-4 py-3'>
+                      <div className='flex items-center justify-end'>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='h-8 w-8'
+                              disabled={actionLoading === dept.id}
+                            >
+                              {actionLoading === dept.id ? (
+                                <Loader2 className='h-4 w-4 animate-spin' />
+                              ) : (
+                                <Icon name='more_horiz' className='text-lg' />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align='end'>
+                            <DropdownMenuItem
+                              onClick={() => handleEditClick(dept)}
+                            >
+                              <Icon name='edit' className='mr-2 text-lg' />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteClick(dept)}
+                              className='focus:bg-destructive-container text-destructive focus:text-destructive'
+                            >
+                              <Icon name='delete' className='mr-2 text-lg' />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
+            </motion.tbody>
+          </table>
+        </div>
+      </div>
+
+      <DepartmentModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchDepartments}
+        department={selectedDept}
+      />
+
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the department "
+              <span className='font-medium text-foreground'>
+                {deptToDelete?.name}
+              </span>
+              ". This action cannot be undone and may fail if teams are
+              associated with it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className={buttonVariants({ variant: 'destructive' })}
+            >
+              Yes, Delete Department
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default DepartmentManagementPage;

@@ -60,3 +60,41 @@ export const isSuperAdmin = (req, res, next) => {
       .json({ message: "Access denied. Requires Super Admin privileges." });
   }
 };
+
+export const isScorer = (req, res, next) => {
+  if (req.user && req.user.role === "scorer") {
+    next();
+  } else {
+    return res
+      .status(403)
+      .json({ message: "Access denied. Requires Scorer privileges." });
+  }
+};
+
+export const isScorerOrAdmin = (req, res, next) => {
+  if (
+    req.user &&
+    (req.user.role === "scorer" ||
+      req.user.role === "admin" ||
+      req.user.role === "super_admin")
+  ) {
+    next();
+  } else {
+    return res
+      .status(403)
+      .json({ message: "Access denied. Requires Scorer or Admin privileges." });
+  }
+};
+
+export const isAdminOrSuperAdmin = (req, res, next) => {
+  if (
+    req.user &&
+    (req.user.role === "admin" || req.user.role === "super_admin")
+  ) {
+    next();
+  } else {
+    return res
+      .status(403)
+      .json({ message: "Access denied. Requires Admin privileges." });
+  }
+};

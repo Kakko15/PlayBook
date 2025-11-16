@@ -76,6 +76,12 @@ export const trainArchetypeModel = async (req, res, next) => {
   }
 
   try {
+    const { error: metricsError } = await supabase.rpc(
+      "calculate_player_metrics",
+      { p_game_type: game }
+    );
+    if (metricsError) return next(metricsError);
+
     const { error: vectorError } = await supabase.rpc(
       "calculate_player_stats_vector",
       { p_game_type: game }

@@ -9,6 +9,13 @@ import {
   formatDateRange,
   getStatus,
 } from '@/lib/tournamentUtils.jsx';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdownMenu';
+import Icon from '@/components/Icon';
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -19,7 +26,13 @@ const itemVariants = {
   },
 };
 
-const TournamentCard = ({ tournament, isPublic = false, className }) => {
+const TournamentCard = ({
+  tournament,
+  isPublic = false,
+  className,
+  onEdit,
+  onDelete,
+}) => {
   const navigate = useNavigate();
   const dragControls = useDragControls();
   const [isDragging, setIsDragging] = useState(false);
@@ -39,8 +52,14 @@ const TournamentCard = ({ tournament, isPublic = false, className }) => {
     navigate(path);
   };
 
-  const onCardAction = (e) => {
+  const handleEdit = (e) => {
     e.stopPropagation();
+    onEdit(tournament);
+  };
+
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    onDelete(tournament);
   };
 
   const handlePointerDown = (e) => {
@@ -99,14 +118,34 @@ const TournamentCard = ({ tournament, isPublic = false, className }) => {
         {gameDetails.icon}
 
         {!isPublic && (
-          <Button
-            variant='ghost'
-            size='icon'
-            className='absolute right-3 top-3 h-9 w-9 scale-[0.8] rounded-full bg-white/70 text-black opacity-0 transition-[opacity,transform] duration-200 ease-out hover:scale-100 hover:bg-[#fff] group-hover:scale-100 group-hover:opacity-100'
-            onClick={onCardAction}
-          >
-            <MoreVertical className='h-5 w-5' />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant='ghost'
+                size='icon'
+                className='absolute right-3 top-3 h-9 w-9 rounded-full bg-white/70 text-black transition-colors ease-out hover:bg-[#fff]'
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className='h-5 w-5' />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align='end'
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DropdownMenuItem onClick={handleEdit}>
+                <Icon name='edit' className='mr-2' />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleDelete}
+                className='text-destructive focus:text-destructive'
+              >
+                <Icon name='delete' className='mr-2' />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 

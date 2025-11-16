@@ -24,6 +24,8 @@ export const navigateAfterLogin = (
 ) => {
   if (user.role === USER_ROLES.SUPER_ADMIN) {
     navigate('/superadmin/dashboard', options);
+  } else if (user.role === USER_ROLES.SCORER) {
+    navigate('/scorer/dashboard', options);
   } else {
     navigate('/admin/dashboard', options);
   }

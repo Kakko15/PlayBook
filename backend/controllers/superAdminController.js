@@ -86,7 +86,7 @@ export const manageUserRole = async (req, res, next) => {
   const { id } = req.params;
   const { role } = req.body;
 
-  if (!role || !["admin", "super_admin"].includes(role)) {
+  if (!role || !["admin", "super_admin", "scorer"].includes(role)) {
     return res.status(400).json({ message: "Invalid role specified." });
   }
 

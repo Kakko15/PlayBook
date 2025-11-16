@@ -187,11 +187,13 @@ export const getTeams = async (req, res, next) => {
 
 export const addTeam = async (req, res, next) => {
   const { tournamentId } = req.params;
-  const { name, logo_url } = req.body;
+  const { name, logo_url, department_id } = req.body;
   const { userId } = req.user;
 
-  if (!name) {
-    return res.status(400).json({ message: "Team name is required." });
+  if (!name || !department_id) {
+    return res
+      .status(400)
+      .json({ message: "Team name and department are required." });
   }
 
   try {
@@ -201,6 +203,7 @@ export const addTeam = async (req, res, next) => {
         name: sanitize(name),
         logo_url: sanitize(logo_url) || null,
         tournament_id: tournamentId,
+        department_id: department_id,
       })
       .select()
       .single();
@@ -224,7 +227,7 @@ export const addTeam = async (req, res, next) => {
 
 export const updateTeam = async (req, res, next) => {
   const { teamId } = req.params;
-  const { name, logo_url } = req.body;
+  const { name, logo_url, department_id } = req.body;
 
   try {
     const { data, error } = await supabase
@@ -232,6 +235,7 @@ export const updateTeam = async (req, res, next) => {
       .update({
         name: sanitize(name),
         logo_url: sanitize(logo_url) || null,
+        department_id: department_id,
       })
       .eq("id", teamId)
       .select()
@@ -328,6 +332,72 @@ export const deletePlayer = async (req, res, next) => {
       .eq("id", playerId);
     if (error) return next(error);
     res.status(200).json({ message: "Player deleted successfully." });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const bulkAddPlayers = async (req, res, next) => {
+  const { tournamentId } = req.params;
+  const { players } = req.body;
+
+  if (!players || !Array.isArray(players) || players.length === 0) {
+    return res.status(400).json({ message: "Player data is required." });
+  }
+
+  try {
+    const { data: departments, error: deptError } = await supabase
+      .from("departments")
+      .select("id, acronym");
+    if (deptError) return next(deptError);
+
+    const deptMap = new Map(departments.map((d) => [d.acronym, d.id]));
+
+    const { data: teams, error: teamsError } = await supabase
+      .from("teams")
+      .select("id, department_id")
+      .eq("tournament_id", tournamentId);
+    if (teamsError) return next(teamsError);
+
+    const teamMap = new Map(teams.map((t) => [t.department_id, t.id]));
+
+    const playersToInsert = [];
+    const skippedPlayers = [];
+
+    for (const player of players) {
+      const deptId = deptMap.get(player.department_acronym);
+      if (!deptId) {
+        skippedPlayers.push({ ...player, reason: "Department not found" });
+        continue;
+      }
+
+      const teamId = teamMap.get(deptId);
+      if (!teamId) {
+        skippedPlayers.push({
+          ...player,
+          reason: `No team for ${player.department_acronym} in this tournament.`,
+        });
+        continue;
+      }
+
+      playersToInsert.push({
+        name: sanitize(player.name),
+        team_id: teamId,
+      });
+    }
+
+    if (playersToInsert.length > 0) {
+      const { error: insertError } = await supabase
+        .from("players")
+        .insert(playersToInsert);
+      if (insertError) return next(insertError);
+    }
+
+    res.status(201).json({
+      message: `Successfully added ${playersToInsert.length} players.`,
+      skipped: skippedPlayers.length,
+      skippedPlayers,
+    });
   } catch (error) {
     next(error);
   }
@@ -516,6 +586,24 @@ export const getSchedule = async (req, res, next) => {
   }
 };
 
+export const getPlayerRankings = async (req, res, next) => {
+  const { tournamentId } = req.params;
+  try {
+    const { data, error } = await supabase
+      .from("players")
+      .select(
+        "id, name, isu_ps, offensive_rating, defensive_rating, game_count, avg_sportsmanship, team:teams!inner(id, name, tournament_id, wins, losses)"
+      )
+      .eq("team.tournament_id", tournamentId)
+      .order("isu_ps", { ascending: false });
+
+    if (error) return next(error);
+    res.status(200).json(data);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getStandings = async (req, res, next) => {
   const { id: tournament_id } = req.params;
   try {
@@ -570,13 +658,26 @@ export const logMatchResult = async (req, res, next) => {
     const { data: match, error: matchError } = await supabase
       .from("matches")
       .select(
-        "*, tournament:tournaments!inner(*), team1:teams!matches_team1_id_fkey(*), team2:teams!matches_team2_id_fkey(*)"
+        "*, tournament:tournaments!inner(*), team1:teams!matches_team1_id_fkey(*, department:departments!inner(id, elo_rating)), team2:teams!matches_team2_id_fkey(*, department:departments!inner(id, elo_rating))"
       )
       .eq("id", match_id)
       .single();
 
     if (matchError) return next(matchError);
     if (!match) return res.status(404).json({ message: "Match not found." });
+
+    if (match.is_finalized) {
+      return res
+        .status(403)
+        .json({ message: "This match is finalized and cannot be edited." });
+    }
+
+    if (!match.team1.department || !match.team2.department) {
+      return res.status(400).json({
+        message:
+          "One or both teams are missing a department link. Cannot log result.",
+      });
+    }
 
     const wasCompleted = match.status === "completed";
     const oldWinnerId =
@@ -591,6 +692,15 @@ export const logMatchResult = async (req, res, next) => {
     const [newEloTeam1, newEloTeam2] = calculateElo(
       team1.elo_rating,
       team2.elo_rating,
+      team1_score > team2_score ? 1 : 0,
+      kFactor
+    );
+
+    const dept1 = match.team1.department;
+    const dept2 = match.team2.department;
+    const [newEloDept1, newEloDept2] = calculateElo(
+      dept1.elo_rating,
+      dept2.elo_rating,
       team1_score > team2_score ? 1 : 0,
       kFactor
     );
@@ -621,11 +731,61 @@ export const logMatchResult = async (req, res, next) => {
       p_team2_name: team2.name,
       p_next_match_id: match.next_match_id,
       p_winner_advances_to_slot: match.winner_advances_to_slot,
+      p_dept1_id: dept1.id,
+      p_dept2_id: dept2.id,
+      p_dept1_new_elo: newEloDept1,
+      p_dept2_new_elo: newEloDept2,
     });
 
     if (rpcError) return next(rpcError);
 
     res.status(200).json({ message: "Match result logged successfully." });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const finalizeMatch = async (req, res, next) => {
+  const { id: match_id } = req.params;
+  const { userId } = req.user;
+
+  try {
+    const { data: match, error: finalizeError } = await supabase
+      .from("matches")
+      .update({ is_finalized: true })
+      .eq("id", match_id)
+      .select("id, tournament_id, tournament:tournaments(game)")
+      .single();
+
+    if (finalizeError) return next(finalizeError);
+    if (!match) {
+      return res.status(4404).json({ message: "Match not found." });
+    }
+
+    const game = match.tournament.game;
+    if (game) {
+      const { error: metricsError } = await supabase.rpc(
+        "calculate_player_metrics",
+        { p_game_type: game }
+      );
+      if (metricsError) {
+        console.error(
+          "Failed to update player metrics on finalization:",
+          metricsError
+        );
+      }
+    }
+
+    await supabase.rpc("log_activity", {
+      p_icon: "lock",
+      p_color: "text-blue-600",
+      p_title: "Match Finalized",
+      p_description: `Match ID ${match.id} was finalized and locked.`,
+      p_tournament_id: match.tournament_id,
+      p_user_id: userId,
+    });
+
+    res.status(200).json({ message: "Match finalized and analytics updated." });
   } catch (error) {
     next(error);
   }

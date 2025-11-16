@@ -13,6 +13,7 @@ const ScheduleTab = ({ tournamentId, game }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(null);
 
   const fetchSchedule = useCallback(async () => {
     setIsLoading(true);
@@ -42,6 +43,19 @@ const ScheduleTab = ({ tournamentId, game }) => {
       );
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleFinalizeMatch = async (matchId) => {
+    setIsFinalizing(matchId);
+    try {
+      await api.finalizeMatch(matchId);
+      toast.success('Match finalized and analytics updated.');
+      fetchSchedule();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to finalize match.');
+    } finally {
+      setIsFinalizing(null);
     }
   };
 
@@ -102,6 +116,8 @@ const ScheduleTab = ({ tournamentId, game }) => {
             key={match.id}
             match={match}
             onLogResult={handleLogResultClick}
+            onFinalize={handleFinalizeMatch}
+            isFinalizing={isFinalizing === match.id}
           />
         ))}
       </div>
@@ -118,10 +134,11 @@ const ScheduleTab = ({ tournamentId, game }) => {
   );
 };
 
-const MatchCard = ({ match, onLogResult }) => {
+const MatchCard = ({ match, onLogResult, onFinalize, isFinalizing }) => {
   const isCompleted = match.status === 'completed';
   const team1Win = match.team1_score > match.team2_score;
   const team2Win = match.team2_score > match.team1_score;
+  const isFinalized = match.is_finalized;
 
   return (
     <div className='rounded-lg border border-border bg-card p-4 transition-all hover:shadow-sm'>
@@ -129,15 +146,40 @@ const MatchCard = ({ match, onLogResult }) => {
         <span className='text-sm text-muted-foreground'>
           {match.round_name || 'Match'}
         </span>
-        <Button
-          variant='ghost'
-          size='sm'
-          onClick={() => onLogResult(match)}
-          className='h-8 px-3'
-        >
-          <Edit className='mr-2 h-4 w-4' />
-          {isCompleted ? 'Edit Result' : 'Log Result'}
-        </Button>
+        <div className='flex items-center gap-2'>
+          {isFinalized && (
+            <span className='flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800'>
+              <Icon name='lock' className='mr-1 text-xs' />
+              Finalized
+            </span>
+          )}
+          <Button
+            variant='ghost'
+            size='sm'
+            onClick={() => onLogResult(match)}
+            className='h-8 px-3'
+            disabled={isFinalized || isFinalizing}
+          >
+            <Edit className='mr-2 h-4 w-4' />
+            {isCompleted ? 'Edit Result' : 'Log Result'}
+          </Button>
+          {isCompleted && !isFinalized && (
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => onFinalize(match.id)}
+              className='h-8 px-3'
+              disabled={isFinalizing}
+            >
+              {isFinalizing ? (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              ) : (
+                <Icon name='lock' className='mr-2' />
+              )}
+              Finalize
+            </Button>
+          )}
+        </div>
       </div>
       <div className='flex items-center justify-between'>
         <TeamDisplay

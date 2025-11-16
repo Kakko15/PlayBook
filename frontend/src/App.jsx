@@ -40,9 +40,13 @@ import TournamentWorkspace from '@/pages/Dashboard/TournamentWorkspace';
 import SuperAdminLayout from '@/pages/SuperAdmin/SuperAdminLayout';
 import SuperAdminDashboard from '@/pages/SuperAdmin/SuperAdminDashboard';
 import UserManagementPage from '@/pages/SuperAdmin/UserManagementPage';
+import DepartmentManagementPage from '@/pages/SuperAdmin/DepartmentManagementPage';
 import SystemManagementPage from '@/pages/SuperAdmin/SystemManagementPage';
 import AnalyticsPage from '@/pages/SuperAdmin/AnalyticsPage';
 import ActivityLogPage from '@/pages/SuperAdmin/ActivityLogPage';
+
+import ScorerLayout from '@/pages/Scorer/ScorerLayout';
+import ScorerDashboard from '@/pages/Scorer/ScorerDashboard';
 
 import AccountSettingsPage from '@/pages/Account/AccountSettingsPage';
 import MyAccountTab from '@/pages/Account/MyAccountTab';
@@ -122,7 +126,9 @@ function App() {
                   to={
                     user.role === 'super_admin'
                       ? '/superadmin/dashboard'
-                      : '/admin/dashboard'
+                      : user.role === 'scorer'
+                        ? '/scorer/dashboard'
+                        : '/admin/dashboard'
                   }
                   replace
                 />
@@ -245,9 +251,22 @@ function App() {
             <Route index element={<Navigate to='dashboard' replace />} />
             <Route path='dashboard' element={<SuperAdminDashboard />} />
             <Route path='users' element={<UserManagementPage />} />
+            <Route path='departments' element={<DepartmentManagementPage />} />
             <Route path='system' element={<SystemManagementPage />} />
             <Route path='analytics' element={<AnalyticsPage />} />
             <Route path='activity' element={<ActivityLogPage />} />
+          </Route>
+
+          <Route
+            path='/scorer'
+            element={
+              <ProtectedRoute role='scorer'>
+                <ScorerLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to='dashboard' replace />} />
+            <Route path='dashboard' element={<ScorerDashboard />} />
           </Route>
 
           <Route

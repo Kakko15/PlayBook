@@ -202,6 +202,23 @@ const api = {
     return data;
   },
 
+  getDepartments: async () => {
+    const { data } = await apiClient.get('/departments');
+    return data;
+  },
+  createDepartment: async (deptData) => {
+    const { data } = await apiClient.post('/departments', deptData);
+    return data;
+  },
+  updateDepartment: async (id, deptData) => {
+    const { data } = await apiClient.put(`/departments/${id}`, deptData);
+    return data;
+  },
+  deleteDepartment: async (id) => {
+    const { data } = await apiClient.delete(`/departments/${id}`);
+    return data;
+  },
+
   createBackup: async () => {
     const { data } = await apiClient.post('/superadmin/system/backup');
     return data;
@@ -287,6 +304,14 @@ const api = {
     return data;
   },
 
+  bulkAddPlayers: async (tournamentId, players) => {
+    const { data } = await apiClient.post(
+      `/tournaments/${tournamentId}/players/bulk-upload`,
+      { players }
+    );
+    return data;
+  },
+
   generateSchedule: async (tournamentId) => {
     const { data } = await apiClient.post(
       `/tournaments/${tournamentId}/schedule/generate`
@@ -312,6 +337,12 @@ const api = {
     );
     return data;
   },
+  getPlayerRankings: async (tournamentId) => {
+    const { data } = await apiClient.get(
+      `/tournaments/${tournamentId}/rankings/players`
+    );
+    return data;
+  },
   getMatchDetails: async (matchId) => {
     const { data } = await apiClient.get(`/tournaments/match/${matchId}`);
     return data;
@@ -320,6 +351,13 @@ const api = {
     const { data } = await apiClient.put(
       `/tournaments/match/${matchId}/log`,
       matchData
+    );
+    return data;
+  },
+
+  finalizeMatch: async (matchId) => {
+    const { data } = await apiClient.post(
+      `/tournaments/match/${matchId}/finalize`
     );
     return data;
   },

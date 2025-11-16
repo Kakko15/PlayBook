@@ -23,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { cn } from '@/lib/utils';
 
 const getStatSchema = (game) => {
   switch (game) {
@@ -31,6 +32,13 @@ const getStatSchema = (game) => {
         pts: z.coerce.number().min(0).default(0),
         reb: z.coerce.number().min(0).default(0),
         ast: z.coerce.number().min(0).default(0),
+        oreb: z.coerce.number().min(0).default(0),
+        dreb: z.coerce.number().min(0).default(0),
+        fouls_drawn: z.coerce.number().min(0).default(0),
+        games_started: z.coerce.number().min(0).max(1).default(0),
+        sportsmanship_rating: z.coerce.number().min(0).max(5).default(5),
+        shot_x_coord: z.coerce.number().optional(),
+        shot_y_coord: z.coerce.number().optional(),
       });
     case 'valorant':
     case 'mlbb':
@@ -134,10 +142,19 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
     }
   };
 
-  const getStatFields = (index) => {
+  const getStatFields = () => {
     switch (game) {
       case 'basketball':
-        return ['pts', 'reb', 'ast'];
+        return [
+          'pts',
+          'reb',
+          'ast',
+          'oreb',
+          'dreb',
+          'fouls_drawn',
+          'games_started',
+          'sportsmanship_rating',
+        ];
       case 'valorant':
       case 'mlbb':
         return ['kills', 'deaths', 'assists'];
@@ -145,6 +162,8 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
         return [];
     }
   };
+
+  const statFields = getStatFields();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -231,10 +250,13 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
               {fields.map((field, index) => (
                 <div
                   key={field.id}
-                  className='grid grid-cols-4 items-center gap-2'
+                  className={cn(
+                    'grid grid-cols-4 items-center gap-2',
+                    game === 'basketball' && 'grid-cols-5'
+                  )}
                 >
                   <FormLabel className='truncate'>{field.name}</FormLabel>
-                  {getStatFields(index).map((statName) => (
+                  {statFields.map((statName) => (
                     <FormField
                       key={statName}
                       control={form.control}

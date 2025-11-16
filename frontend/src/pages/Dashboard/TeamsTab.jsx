@@ -2,10 +2,11 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Users } from 'lucide-react';
+import { Loader2, Plus, Users, Upload } from 'lucide-react';
 import TeamCard from '@/components/TeamCard';
 import TeamModal from '@/components/TeamModal';
 import PlayerManager from './PlayerManager';
+import BulkUploadModal from '@/components/BulkUploadModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +25,7 @@ const TeamsTab = ({ tournamentId }) => {
   const [isTeamModalOpen, setIsTeamModalOpen] = useState(false);
   const [isPlayerManagerOpen, setIsPlayerManagerOpen] = useState(false);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isBulkUploadOpen, setIsBulkUploadOpen] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [teamToDelete, setTeamToDelete] = useState(null);
 
@@ -83,10 +85,16 @@ const TeamsTab = ({ tournamentId }) => {
         <h2 className='text-2xl font-semibold text-foreground'>
           Teams ({teams.length})
         </h2>
-        <Button onClick={handleAddTeamClick}>
-          <Plus className='mr-2 h-4 w-4' />
-          Add Team
-        </Button>
+        <div className='flex gap-2'>
+          <Button variant='outline' onClick={() => setIsBulkUploadOpen(true)}>
+            <Upload className='mr-2 h-4 w-4' />
+            Bulk Upload
+          </Button>
+          <Button onClick={handleAddTeamClick}>
+            <Plus className='mr-2 h-4 w-4' />
+            Add Team
+          </Button>
+        </div>
       </div>
 
       <div className='mt-6'>
@@ -134,6 +142,13 @@ const TeamsTab = ({ tournamentId }) => {
           fetchTeams();
         }}
         team={selectedTeam}
+      />
+
+      <BulkUploadModal
+        isOpen={isBulkUploadOpen}
+        onClose={() => setIsBulkUploadOpen(false)}
+        onSuccess={fetchTeams}
+        tournamentId={tournamentId}
       />
 
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>

@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,11 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { to: '/superadmin/dashboard', icon: 'dashboard', label: 'Dashboard' },
   { to: '/superadmin/users', icon: 'group', label: 'User Management' },
+  {
+    to: '/superadmin/departments',
+    icon: 'school',
+    label: 'Departments',
+  },
   { to: '/superadmin/system', icon: 'settings', label: 'System' },
   { to: '/superadmin/analytics', icon: 'analytics', label: 'Analytics' },
   { to: '/superadmin/activity', icon: 'manage_history', label: 'Activity Log' },

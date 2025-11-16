@@ -11,16 +11,23 @@ import {
   deleteTeam,
   getPlayers,
   addPlayer,
+  bulkAddPlayers,
   updatePlayer,
   deletePlayer,
   generateSchedule,
   generatePlayoffBracket,
   getSchedule,
+  getPlayerRankings,
   getStandings,
   getMatchDetails,
   logMatchResult,
+  finalizeMatch,
 } from "../controllers/tournamentController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import {
+  protect,
+  isScorerOrAdmin,
+  isAdminOrSuperAdmin,
+} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -40,6 +47,7 @@ router.delete("/teams/:teamId", deleteTeam);
 
 router.get("/teams/:teamId/players", getPlayers);
 router.post("/teams/:teamId/players", addPlayer);
+router.post("/:tournamentId/players/bulk-upload", bulkAddPlayers);
 router.put("/players/:playerId", updatePlayer);
 router.delete("/players/:playerId", deletePlayer);
 
@@ -47,8 +55,10 @@ router.post("/:id/schedule/generate", generateSchedule);
 router.post("/:id/playoffs/generate", generatePlayoffBracket);
 router.get("/:id/schedule", getSchedule);
 router.get("/:id/standings", getStandings);
+router.get("/:tournamentId/rankings/players", getPlayerRankings);
 
 router.get("/match/:id", getMatchDetails);
-router.put("/match/:id/log", logMatchResult);
+router.put("/match/:id/log", isScorerOrAdmin, logMatchResult);
+router.post("/match/:id/finalize", isAdminOrSuperAdmin, finalizeMatch);
 
 export default router;

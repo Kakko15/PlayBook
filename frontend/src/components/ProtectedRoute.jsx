@@ -24,12 +24,12 @@ const ProtectedRoute = ({ children, role }) => {
     }
   }
 
-  if (role === 'super_admin' && user.role !== 'super_admin') {
-    return <Navigate to='/admin' replace />;
-  }
-
-  if (role === 'admin' && user.role === 'super_admin') {
-    return <Navigate to='/superadmin' replace />;
+  if (role && user.role !== role) {
+    if (user.role === 'super_admin')
+      return <Navigate to='/superadmin' replace />;
+    if (user.role === 'admin') return <Navigate to='/admin' replace />;
+    if (user.role === 'scorer') return <Navigate to='/scorer' replace />;
+    return <Navigate to='/' replace />;
   }
 
   return children;
