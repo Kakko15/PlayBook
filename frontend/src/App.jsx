@@ -69,7 +69,11 @@ function App() {
     const handleSessionEnd = (data) => {
       setUser(null);
       setProfile(null);
-      navigate(data.path, { replace: true });
+      if (data && data.path) {
+        navigate(data.path, { replace: true });
+      } else {
+        navigate('/login', { replace: true });
+      }
     };
 
     eventBus.on('sessionEnded', handleSessionEnd);
@@ -78,28 +82,6 @@ function App() {
       eventBus.remove('sessionEnded', handleSessionEnd);
     };
   }, [navigate, setUser, setProfile]);
-
-  useEffect(() => {
-    let intervalId;
-
-    const checkSession = async () => {
-      try {
-        await api.getAccountDetails();
-      } catch (error) {
-        console.log('Session check failed, interceptor will handle redirect.');
-      }
-    };
-
-    if (user) {
-      intervalId = setInterval(checkSession, 3000);
-    }
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [user]);
 
   return (
     <ErrorBoundary>
@@ -181,13 +163,11 @@ function App() {
           <Route
             path='/setup-2fa'
             element={
-              user ? (
+              <ProtectedRoute>
                 <PageLayout>
                   <OtpSetupPage />
                 </PageLayout>
-              ) : (
-                <Navigate to='/login' replace />
-              )
+              </ProtectedRoute>
             }
           />
           <Route
