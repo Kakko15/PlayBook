@@ -15,6 +15,7 @@ import {
   updatePlayer,
   deletePlayer,
   generateSchedule,
+  clearSchedule,
   generatePlayoffBracket,
   getSchedule,
   getPlayerRankings,
@@ -52,6 +53,7 @@ router.put("/players/:playerId", updatePlayer);
 router.delete("/players/:playerId", deletePlayer);
 
 router.post("/:id/schedule/generate", generateSchedule);
+router.delete("/:id/schedule", clearSchedule);
 router.post("/:id/playoffs/generate", generatePlayoffBracket);
 router.get("/:id/schedule", getSchedule);
 router.get("/:id/standings", getStandings);

@@ -1,5 +1,5 @@
 import supabase from "../supabaseClient.js";
-import { generateRoundRobin, calculateElo } from "../utils/tournamentLogic.js";
+import { calculateElo } from "../utils/tournamentLogic.js";
 import { sanitize, sanitizeObject } from "../utils/sanitize.js";
 
 export const createTournament = async (req, res, next) => {
@@ -31,16 +31,54 @@ export const createTournament = async (req, res, next) => {
         .json({ message: "Tournament creation failed to return data." });
     }
 
-    const { data: collaborator, error: collaboratorError } = await supabase
+    const { error: collaboratorError } = await supabase
       .from("collaborators")
       .insert({
         tournament_id: tournament.id,
         user_id: ownerId,
         role: "owner",
-      })
-      .select();
+      });
 
     if (collaboratorError) {
+      console.error("Error adding collaborator:", collaboratorError);
+    }
+
+    const { data: departments, error: deptError } = await supabase
+      .from("departments")
+      .select("id, name, acronym");
+
+    if (deptError) {
+      console.error(
+        "Failed to fetch departments for auto-population:",
+        deptError
+      );
+    } else if (departments && departments.length > 0) {
+      const teamsToInsert = departments.map((dept) => ({
+        tournament_id: tournament.id,
+        department_id: dept.id,
+        name: sanitize(dept.name),
+        logo_url: null,
+        wins: 0,
+        losses: 0,
+        elo_rating: 1200,
+      }));
+
+      const { error: teamsError } = await supabase
+        .from("teams")
+        .insert(teamsToInsert);
+
+      if (teamsError) {
+        console.error("Failed to auto-populate teams:", teamsError);
+      } else {
+        await supabase.rpc("log_activity", {
+          p_icon: "groups",
+          p_color: "text-green-600",
+          p_title: "Teams Auto-Populated",
+          p_description: `Added ${teamsToInsert.length} department teams to ${tournament.name}.`,
+          p_tournament_id: tournament.id,
+          p_user_id: ownerId,
+        });
+      }
     }
 
     res.status(201).json(tournament);
@@ -176,7 +214,7 @@ export const getTeams = async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from("teams")
-      .select("*, players(count)")
+      .select("*, players(count), department:departments(acronym)")
       .eq("tournament_id", tournamentId)
       .order("name", { ascending: true });
 
@@ -189,7 +227,7 @@ export const getTeams = async (req, res, next) => {
 
 export const addTeam = async (req, res, next) => {
   const { tournamentId } = req.params;
-  const { department_id } = req.body;
+  const { name, department_id, logo_url } = req.body;
   const { userId } = req.user;
 
   if (!department_id) {
@@ -211,8 +249,8 @@ export const addTeam = async (req, res, next) => {
     const { data, error } = await supabase
       .from("teams")
       .insert({
-        name: sanitize(department.name),
-        logo_url: `https://avatar.vercel.sh/${department.acronym}.png`,
+        name: sanitize(name) || sanitize(department.name),
+        logo_url: logo_url ? sanitize(logo_url) : null,
         tournament_id: tournamentId,
         department_id: department_id,
       })
@@ -238,16 +276,19 @@ export const addTeam = async (req, res, next) => {
 
 export const updateTeam = async (req, res, next) => {
   const { teamId } = req.params;
-  const { department_id } = req.body;
+  const { name, department_id, logo_url } = req.body;
+
+  const updates = {
+    department_id: department_id,
+  };
+
+  if (name) updates.name = sanitize(name);
+  if (logo_url) updates.logo_url = sanitize(logo_url);
 
   try {
-    // Note: This logic assumes you only want to update the department.
-    // If you also want to auto-update name, you need to fetch department info here too.
     const { data, error } = await supabase
       .from("teams")
-      .update({
-        department_id: department_id,
-      })
+      .update(updates)
       .eq("id", teamId)
       .select()
       .single();
@@ -433,20 +474,85 @@ export const generateSchedule = async (req, res, next) => {
 
     await supabase.from("matches").delete().eq("tournament_id", tournament_id);
 
-    const matches = generateRoundRobin(teams.map((t) => t.id));
+    const shuffledTeams = teams.sort(() => Math.random() - 0.5);
 
-    const matchesToInsert = matches.map((match) => ({
+    let currentLayer = shuffledTeams.map((t) => ({ type: "team", id: t.id }));
+    let roundNumber = 1;
+    let matchNodes = [];
+
+    while (currentLayer.length > 1) {
+      const nextLayer = [];
+
+      for (let i = 0; i < currentLayer.length; i += 2) {
+        if (i + 1 < currentLayer.length) {
+          const matchNode = {
+            tempId: matchNodes.length,
+            round: roundNumber,
+            source1: currentLayer[i],
+            source2: currentLayer[i + 1],
+            nextMatchTempId: null,
+            winnerSlot: null,
+          };
+
+          if (currentLayer[i].type === "match") {
+            currentLayer[i].node.nextMatchTempId = matchNode.tempId;
+            currentLayer[i].node.winnerSlot = "team1";
+          }
+          if (currentLayer[i + 1].type === "match") {
+            currentLayer[i + 1].node.nextMatchTempId = matchNode.tempId;
+            currentLayer[i + 1].node.winnerSlot = "team2";
+          }
+
+          matchNodes.push(matchNode);
+          nextLayer.push({ type: "match", node: matchNode });
+        } else {
+          nextLayer.push(currentLayer[i]);
+        }
+      }
+
+      currentLayer = nextLayer;
+      roundNumber++;
+    }
+
+    const totalRounds = roundNumber - 1;
+
+    const getRoundName = (r, total) => {
+      if (r === total) return "Finals";
+      if (r === total - 1) return "Semifinals";
+      if (r === total - 2) return "Quarterfinals";
+      return `Round ${r}`;
+    };
+
+    const matchesToInsert = matchNodes.map((node) => ({
       tournament_id,
-      team1_id: match.team1_id,
-      team2_id: match.team2_id,
+      round_name: getRoundName(node.round, totalRounds),
       status: "pending",
+      team1_id: node.source1.type === "team" ? node.source1.id : null,
+      team2_id: node.source2.type === "team" ? node.source2.id : null,
     }));
 
-    const { error: insertError } = await supabase
+    const { data: insertedMatches, error: insertError } = await supabase
       .from("matches")
-      .insert(matchesToInsert);
+      .insert(matchesToInsert)
+      .select("id");
 
     if (insertError) return next(insertError);
+
+    for (let i = 0; i < matchNodes.length; i++) {
+      const node = matchNodes[i];
+      if (node.nextMatchTempId !== null) {
+        const currentDbId = insertedMatches[i].id;
+        const nextDbId = insertedMatches[node.nextMatchTempId].id;
+
+        await supabase
+          .from("matches")
+          .update({
+            next_match_id: nextDbId,
+            winner_advances_to_slot: node.winnerSlot,
+          })
+          .eq("id", currentDbId);
+      }
+    }
 
     await supabase.rpc("log_activity", {
       p_icon: "calendar_month",
@@ -489,90 +595,10 @@ export const generatePlayoffBracket = async (req, res, next) => {
         .json({ message: `Not enough teams for a ${numTeams}-team bracket.` });
     }
 
-    const [seed1, seed8, seed4, seed5, seed3, seed6, seed2, seed7] = teams.map(
-      (t) => t.id
-    );
-    const pairings = [
-      [seed1, seed8],
-      [seed4, seed5],
-      [seed3, seed6],
-      [seed2, seed7],
-    ];
-
-    const { data: finalMatch, error: finalError } = await supabase
-      .from("matches")
-      .insert({
-        tournament_id,
-        round_name: "Finals",
-        status: "pending",
-      })
-      .select("id")
-      .single();
-    if (finalError) return next(finalError);
-
-    const { data: semiFinal1, error: sf1Error } = await supabase
-      .from("matches")
-      .insert({
-        tournament_id,
-        round_name: "Semifinals",
-        status: "pending",
-        next_match_id: finalMatch.id,
-        winner_advances_to_slot: "team1",
-      })
-      .select("id")
-      .single();
-    if (sf1Error) return next(sf1Error);
-
-    const { data: semiFinal2, error: sf2Error } = await supabase
-      .from("matches")
-      .insert({
-        tournament_id,
-        round_name: "Semifinals",
-        status: "pending",
-        next_match_id: finalMatch.id,
-        winner_advances_to_slot: "team2",
-      })
-      .select("id")
-      .single();
-    if (sf2Error) return next(sf2Error);
-
-    const quarterFinals = [
-      {
-        pairing: pairings[0],
-        next: semiFinal1.id,
-        slot: "team1",
-      },
-      {
-        pairing: pairings[1],
-        next: semiFinal1.id,
-        slot: "team2",
-      },
-      {
-        pairing: pairings[2],
-        next: semiFinal2.id,
-        slot: "team1",
-      },
-      {
-        pairing: pairings[3],
-        next: semiFinal2.id,
-        slot: "team2",
-      },
-    ];
-
-    const qfMatches = quarterFinals.map((qf, index) => ({
-      tournament_id,
-      team1_id: qf.pairing[0],
-      team2_id: qf.pairing[1],
-      round_name: `Quarterfinals ${index + 1}`,
-      status: "pending",
-      next_match_id: qf.next,
-      winner_advances_to_slot: qf.slot,
-    }));
-
-    const { error: qfError } = await supabase.from("matches").insert(qfMatches);
-    if (qfError) return next(qfError);
-
-    res.status(201).json({ message: "8-team bracket generated successfully." });
+    res.status(200).json({
+      message:
+        "Please use the main Schedule tab to generate the tournament bracket.",
+    });
   } catch (error) {
     next(error);
   }
@@ -584,7 +610,7 @@ export const getSchedule = async (req, res, next) => {
     const { data, error } = await supabase
       .from("matches")
       .select(
-        "*, team1:teams!matches_team1_id_fkey(*), team2:teams!matches_team2_id_fkey(*)"
+        "*, team1:teams!matches_team1_id_fkey(*, department:departments(acronym)), team2:teams!matches_team2_id_fkey(*, department:departments(acronym))"
       )
       .eq("tournament_id", tournament_id)
       .order("round_name", { ascending: true, nullsFirst: true })
@@ -657,8 +683,14 @@ export const getMatchDetails = async (req, res, next) => {
 
 export const logMatchResult = async (req, res, next) => {
   const { id: match_id } = req.params;
-  const { team1_score, team2_score, player_stats, match_date, round_name } =
-    req.body;
+  const {
+    team1_score,
+    team2_score,
+    player_stats,
+    match_date,
+    round_name,
+    venue,
+  } = req.body;
   const { userId } = req.user;
 
   if (team1_score == null || team2_score == null) {
@@ -719,6 +751,16 @@ export const logMatchResult = async (req, res, next) => {
     const matchWinnerId = team1_score > team2_score ? team1.id : team2.id;
     const matchLoserId = team1_score < team2_score ? team1.id : team2.id;
 
+    const updates = {
+      match_date: match_date || match.match_date,
+      round_name: sanitize(round_name) || match.round_name,
+    };
+    if (venue !== undefined) {
+      updates.venue = sanitize(venue);
+    }
+
+    await supabase.from("matches").update(updates).eq("id", match_id);
+
     const { error: rpcError } = await supabase.rpc("atomic_log_match_result", {
       p_match_id: match_id,
       p_team1_id: team1.id,
@@ -770,7 +812,7 @@ export const finalizeMatch = async (req, res, next) => {
 
     if (finalizeError) return next(finalizeError);
     if (!match) {
-      return res.status(4404).json({ message: "Match not found." });
+      return res.status(404).json({ message: "Match not found." });
     }
 
     const game = match.tournament.game;
@@ -797,6 +839,33 @@ export const finalizeMatch = async (req, res, next) => {
     });
 
     res.status(200).json({ message: "Match finalized and analytics updated." });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const clearSchedule = async (req, res, next) => {
+  const { id: tournament_id } = req.params;
+  const { userId } = req.user;
+
+  try {
+    const { error } = await supabase
+      .from("matches")
+      .delete()
+      .eq("tournament_id", tournament_id);
+
+    if (error) return next(error);
+
+    await supabase.rpc("log_activity", {
+      p_icon: "delete",
+      p_color: "text-red-600",
+      p_title: "Schedule Cleared",
+      p_description: `The tournament schedule has been cleared.`,
+      p_tournament_id: tournament_id,
+      p_user_id: userId,
+    });
+
+    res.status(200).json({ message: "Schedule cleared successfully." });
   } catch (error) {
     next(error);
   }
