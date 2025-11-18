@@ -1,109 +1,98 @@
-import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdownMenu';
-import Icon from '@/components/Icon';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Users, Trophy, XCircle, Edit, Trash2, UserCog } from 'lucide-react';
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
+const DEPARTMENT_COLORS = {
+  CBAPA: '080e88',
+  CCJE: '7d0608',
+  CA: '174008',
+  CED: '217580',
+  COE: '4c0204',
+  CCSICT: 'fda003',
+  CON: 'd60685',
+  SVM: '464646',
+  CAS: 'dac607',
+  IOF: '018d99',
+  COM: '2c9103',
 };
 
 const TeamCard = ({ team, onEdit, onDelete, onManagePlayers }) => {
-  if (!team) return null;
+  const isOldLogo = team.logo_url && team.logo_url.includes('avatar.vercel.sh');
 
-  const playerCount = team.players?.[0]?.count || 0;
+  const acronym =
+    team.department?.acronym || team.name.substring(0, 2).toUpperCase();
 
-  const handleEdit = (e) => {
-    e.stopPropagation();
-    onEdit(team);
-  };
+  const color = DEPARTMENT_COLORS[acronym] || '64748b';
 
-  const handleDelete = (e) => {
-    e.stopPropagation();
-    onDelete(team);
-  };
-
-  const handleManagePlayers = (e) => {
-    e.stopPropagation();
-    onManagePlayers(team);
-  };
+  const logoSrc =
+    team.logo_url && !isOldLogo
+      ? team.logo_url
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(acronym)}&background=${color}&color=fff&size=128&bold=true&length=4`;
 
   return (
-    <motion.div variants={itemVariants}>
-      <Card className='flex flex-col justify-between'>
-        <CardContent className='flex items-center justify-between p-4 pb-0'>
-          <div className='flex items-center gap-3 overflow-hidden'>
-            <img
-              src={
-                team.logo_url ||
-                `https://avatar.vercel.sh/${team.name || 'T'}.png`
-              }
-              alt={`${team.name} logo`}
-              className='h-12 w-12 flex-shrink-0 rounded-full bg-muted'
-              onError={(e) => {
-                e.currentTarget.src = `https://avatar.vercel.sh/${team.name || 'T'}.png`;
-              }}
-            />
-            <div className='overflow-hidden'>
-              <h3
-                className='truncate font-semibold text-foreground'
-                title={team.name}
-              >
-                {team.name}
-              </h3>
-              <p className='text-sm text-muted-foreground'>
-                {playerCount} player{playerCount !== 1 ? 's' : ''}
-              </p>
-            </div>
+    <Card className='transition-shadow hover:shadow-md'>
+      <CardHeader className='flex flex-row items-center gap-4 space-y-0 pb-2'>
+        <div className='h-14 w-14 overflow-hidden rounded-full border-2 border-border bg-muted'>
+          <img
+            src={logoSrc}
+            alt={team.name}
+            className='h-full w-full object-cover'
+          />
+        </div>
+        <div className='flex-1 overflow-hidden'>
+          <CardTitle className='truncate text-lg font-bold leading-none'>
+            {team.name}
+          </CardTitle>
+          <p className='mt-1 text-xs text-muted-foreground'>
+            Elo: {team.elo_rating}
+          </p>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className='flex items-center justify-between text-sm text-muted-foreground'>
+          <div className='flex gap-4'>
+            <span className='flex items-center gap-1 font-medium text-green-600'>
+              <Trophy className='h-4 w-4' /> {team.wins} W
+            </span>
+            <span className='flex items-center gap-1 font-medium text-red-600'>
+              <XCircle className='h-4 w-4' /> {team.losses} L
+            </span>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant='ghost'
-                size='icon'
-                onClick={(e) => e.stopPropagation()}
-                className='h-8 w-8 flex-shrink-0'
-              >
-                <Icon name='more_vert' />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align='end'
-              onClick={(e) => e.stopPropagation()}
-            >
-              <DropdownMenuItem onClick={handleEdit}>
-                <Icon name='edit' className='mr-2' />
-                Edit Team
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={handleDelete}
-                className='text-destructive focus:text-destructive'
-              >
-                <Icon name='delete' className='mr-2' />
-                Delete Team
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </CardContent>
-        <CardFooter className='p-4'>
+          <span className='flex items-center gap-1'>
+            <Users className='h-4 w-4' />{' '}
+            {team.players ? team.players[0].count : 0} Players
+          </span>
+        </div>
+
+        <div className='mt-4 flex gap-2'>
           <Button
             variant='outline'
-            className='w-full'
-            onClick={handleManagePlayers}
+            size='sm'
+            className='flex-1'
+            onClick={() => onManagePlayers(team)}
           >
-            <Icon name='manage_accounts' className='mr-2' />
-            Manage Roster
+            <UserCog className='mr-2 h-4 w-4' />
+            Roster
           </Button>
-        </CardFooter>
-      </Card>
-    </motion.div>
+          <Button
+            variant='ghost'
+            size='icon'
+            className='h-9 w-9'
+            onClick={() => onEdit(team)}
+          >
+            <Edit className='h-4 w-4 text-muted-foreground' />
+          </Button>
+          <Button
+            variant='ghost'
+            size='icon'
+            className='h-9 w-9 hover:bg-destructive/10 hover:text-destructive'
+            onClick={() => onDelete(team)}
+          >
+            <Trash2 className='h-4 w-4' />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

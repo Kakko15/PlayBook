@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import api from '@/lib/api';
@@ -50,6 +50,7 @@ const getFormSchema = (game) =>
     team2_score: z.coerce.number().min(0, 'Score is required.'),
     match_date: z.string().optional(),
     round_name: z.string().optional(),
+    venue: z.string().optional(),
     player_stats: z.array(
       z.object({
         player_id: z.string(),
@@ -72,6 +73,7 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
       team2_score: 0,
       match_date: '',
       round_name: '',
+      venue: '',
       player_stats: [],
     },
   });
@@ -104,6 +106,7 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
             ? new Date(data.match_date).toISOString().slice(0, 16)
             : '',
           round_name: data.round_name ?? '',
+          venue: data.venue ?? '',
           player_stats: [...team1Players, ...team2Players],
         });
       } catch (error) {
@@ -196,7 +199,7 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
                 )}
               />
             </div>
-            <div className='grid grid-cols-2 gap-4'>
+            <div className='grid grid-cols-3 gap-4'>
               <FormField
                 control={form.control}
                 name='round_name'
@@ -219,10 +222,27 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
                 name='match_date'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Match Date (Optional)</FormLabel>
+                    <FormLabel>Date & Time (Optional)</FormLabel>
                     <FormControl>
                       <Input
                         type='datetime-local'
+                        disabled={isLoading}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='venue'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Venue (Optional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder='e.g., University Gym'
                         disabled={isLoading}
                         {...field}
                       />

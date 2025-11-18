@@ -6,9 +6,9 @@ const API_BASE_URL =
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // Send cookies with requests
-  xsrfCookieName: 'XSRF-TOKEN', // Name of the cookie to read
-  xsrfHeaderName: 'X-XSRF-TOKEN', // Name of the header to send
+  withCredentials: true,
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
 apiClient.interceptors.request.use(
@@ -315,6 +315,12 @@ const api = {
   generateSchedule: async (tournamentId) => {
     const { data } = await apiClient.post(
       `/tournaments/${tournamentId}/schedule/generate`
+    );
+    return data;
+  },
+  clearSchedule: async (tournamentId) => {
+    const { data } = await apiClient.delete(
+      `/tournaments/${tournamentId}/schedule`
     );
     return data;
   },
