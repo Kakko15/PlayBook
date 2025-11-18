@@ -4,7 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/hooks/useTheme';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { motion } from 'framer-motion';
+import { motion, Reorder } from 'framer-motion';
 import { containerVariants, itemVariants } from '@/lib/animations';
 import { StatCard } from '@/components/dashboard/StatCard';
 import NeedsAction from '@/components/dashboard/NeedsAction';
@@ -323,12 +323,19 @@ const AdminDashboard = () => {
                         <TournamentListItemSkeleton />
                       </>
                     ) : activeTournamentsForList.length > 0 ? (
-                      activeTournamentsForList.map((tournament) => (
-                        <TournamentListItem
-                          key={tournament.id}
-                          tournament={tournament}
-                        />
-                      ))
+                      <Reorder.Group
+                        axis='y'
+                        values={activeTournamentsForList}
+                        onReorder={() => {}}
+                        className='flex flex-col gap-3'
+                      >
+                        {activeTournamentsForList.map((tournament) => (
+                          <TournamentListItem
+                            key={tournament.id}
+                            tournament={tournament}
+                          />
+                        ))}
+                      </Reorder.Group>
                     ) : (
                       <div className='flex h-32 flex-col items-center justify-center rounded-lg border-2 border-dashed border-outline-variant bg-surface'>
                         <Icon

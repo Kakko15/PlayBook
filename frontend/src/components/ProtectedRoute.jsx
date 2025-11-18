@@ -1,16 +1,28 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Loader from '@/components/Loader';
+import { useEffect, useRef } from 'react';
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, logoutPath, loading, isSessionExpiredModalOpen } = useAuth();
   const location = useLocation();
+
+  const wasLoggedIn = useRef(!!user);
+
+  useEffect(() => {
+    if (user) {
+      wasLoggedIn.current = true;
+    }
+  }, [user]);
 
   if (loading) {
     return <Loader />;
   }
 
   if (!user && !isSessionExpiredModalOpen) {
+    if (wasLoggedIn.current) {
+      return null;
+    }
     return <Navigate to={logoutPath} state={{ from: location }} replace />;
   }
 
