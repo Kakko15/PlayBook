@@ -115,10 +115,17 @@ const api = {
     const { data } = await apiClient.post('/auth/otp/verify-setup', { token });
     return data;
   },
-  verifyOtpLogin: async (email, token) => {
+  verifyOtpLogin: async (email, token, method = 'totp') => {
     const { data } = await apiClient.post('/auth/otp/verify-login', {
       email,
       token,
+      method,
+    });
+    return data;
+  },
+  generateOtpEmail: async (email) => {
+    const { data } = await apiClient.post('/auth/otp/email/generate', {
+      email,
     });
     return data;
   },

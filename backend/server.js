@@ -62,7 +62,14 @@ app.get("/api", (req, res) => {
   });
 });
 
-app.use("/api/auth", authRoutes);
+app.use(
+  "/api/auth",
+  (req, res, next) => {
+    console.log(`[Auth Route] ${req.method} ${req.path}`);
+    next();
+  },
+  authRoutes
+);
 app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/tournaments", tournamentRoutes);
 app.use("/api/public", publicRoutes);

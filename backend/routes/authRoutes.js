@@ -8,6 +8,7 @@ import {
   generateOtpSecret,
   verifyAndEnableOtp,
   verifyOtpLogin,
+  generateEmailOtp,
   requestPasswordReset,
   validateResetToken,
   resetPassword,
@@ -42,6 +43,7 @@ router.post("/oauth/discord", defaultLimiter, discordOAuth);
 router.post("/otp/generate", protect, defaultLimiter, generateOtpSecret);
 router.post("/otp/verify-setup", protect, otpLimiter, verifyAndEnableOtp);
 router.post("/otp/verify-login", otpLimiter, verifyOtpLogin);
+router.post("/otp/email/generate", otpLimiter, generateEmailOtp);
 
 router.post(
   "/password/request-reset",

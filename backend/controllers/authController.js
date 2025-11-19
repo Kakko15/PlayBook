@@ -8,6 +8,7 @@ import axios from "axios";
 import {
   sendPasswordResetEmail,
   sendVerificationEmail,
+  sendOtpCodeEmail,
 } from "../utils/emailService.js";
 import { validatePassword } from "../utils/validation.js";
 import { sanitize } from "../utils/sanitize.js";
@@ -603,8 +604,49 @@ export const verifyAndEnableOtp = async (req, res, next) => {
   }
 };
 
+export const generateEmailOtp = async (req, res, next) => {
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ message: "Email is required." });
+  }
+
+  try {
+    const { data: user, error: findError } = await supabase
+      .from("users")
+      .select("id, name, status")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (findError) return next(findError);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    // Generate 6-digit code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
+
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({
+        email_otp_code: otpCode,
+        email_otp_expires_at: expiresAt.toISOString(),
+      })
+      .eq("id", user.id);
+
+    if (updateError) return next(updateError);
+
+    await sendOtpCodeEmail(email, user.name, otpCode);
+
+    res.status(200).json({ message: "OTP code sent to your email." });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const verifyOtpLogin = async (req, res, next) => {
-  const { email, token } = req.body;
+  const { email, token, method } = req.body; // method: 'totp' or 'email'
 
   if (!email || !token) {
     return res
@@ -634,12 +676,29 @@ export const verifyOtpLogin = async (req, res, next) => {
         .json({ message: "2FA is not enabled for this account." });
     }
 
-    const verified = speakeasy.totp.verify({
-      secret: user.otp_secret,
-      encoding: "base32",
-      token: token,
-      window: 1,
-    });
+    let verified = false;
+
+    if (method === "email") {
+      if (
+        user.email_otp_code === token &&
+        new Date() < new Date(user.email_otp_expires_at)
+      ) {
+        verified = true;
+        // Clear the code after successful use
+        await supabase
+          .from("users")
+          .update({ email_otp_code: null, email_otp_expires_at: null })
+          .eq("id", user.id);
+      }
+    } else {
+      // Default to TOTP
+      verified = speakeasy.totp.verify({
+        secret: user.otp_secret,
+        encoding: "base32",
+        token: token,
+        window: 1,
+      });
+    }
 
     if (!verified) {
       return res.status(401).json({ message: "Invalid OTP code." });
