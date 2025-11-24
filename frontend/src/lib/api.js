@@ -53,7 +53,8 @@ apiClient.interceptors.response.use(
         currentPath.startsWith('/deleted') ||
         currentPath.startsWith('/auth/callback') ||
         currentPath.startsWith('/pending-approval') ||
-        currentPath.startsWith('/check-email');
+        currentPath.startsWith('/check-email') ||
+        currentPath.startsWith('/verify-2fa');
 
       if (isPublicPage) {
         return Promise.reject(error);
