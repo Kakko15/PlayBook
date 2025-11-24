@@ -19,6 +19,7 @@ import LogMatchModal from '@/components/LogMatchModal';
 import TournamentListItem from '@/components/TournamentListItem';
 import TournamentListItemSkeleton from '@/components/TournamentListItemSkeleton';
 import UpNextCard from '@/components/dashboard/UpNextCard';
+import RankingsWidget from '@/components/dashboard/RankingsWidget';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/Icon';
@@ -360,6 +361,14 @@ const AdminDashboard = () => {
                 <EngagementChart
                   engagementData={engagementData}
                   isLoading={isLoading}
+                />
+              </motion.div>
+            )}
+
+            {activeTournamentsForList.length > 0 && (
+              <motion.div variants={itemVariants}>
+                <RankingsWidget
+                  tournamentId={activeTournamentsForList[0]?.id}
                 />
               </motion.div>
             )}
