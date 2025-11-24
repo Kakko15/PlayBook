@@ -108,7 +108,7 @@ const TournamentWorkspace = () => {
                 <span className='hidden sm:inline'>Playoffs</span>
               </TabsTrigger>
               <TabsTrigger value='pickems'>
-                <Icon name='checklist' className='mr-0 h-4 w-4 sm:mr-2' />
+                <Icon name='how_to_vote' className='mr-0 h-4 w-4 sm:mr-2' />
                 <span className='hidden sm:inline'>Pick'ems</span>
               </TabsTrigger>
               <TabsTrigger value='rankings'>
