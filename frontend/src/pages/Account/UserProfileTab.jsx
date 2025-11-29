@@ -187,6 +187,7 @@ const UserProfileTab = () => {
         isOpen={isPfpModalOpen}
         onClose={() => setIsPfpModalOpen(false)}
         onSuccess={onPfpSuccess}
+        currentImage={displayPicture}
       />
     </>
   );

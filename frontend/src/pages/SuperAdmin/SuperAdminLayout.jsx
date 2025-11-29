@@ -14,6 +14,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import ProfilePictureManager from '@/components/ProfilePictureManager';
+import api from '@/lib/api';
 
 import {
   DropdownMenu,
@@ -88,10 +90,32 @@ const NavItem = ({ to, icon, label, isActive, isCollapsed }) => {
 import { useTheme } from '@/hooks/useTheme';
 
 const SuperAdminLayout = () => {
-  const { user, logout, profile } = useAuth();
+  const { user, logout, profile, setProfile } = useAuth();
   const { theme, setTheme } = useTheme();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isProfileManagerOpen, setIsProfileManagerOpen] = useState(false);
+
+  const handleProfileUpdate = async (imageBase64) => {
+    try {
+      if (imageBase64) {
+        const { user: updatedUser } =
+          await api.updateProfilePicture(imageBase64);
+        setProfile((prev) => ({
+          ...prev,
+          profile_picture_url: updatedUser.profile_picture_url,
+        }));
+      } else {
+        await api.removeProfilePicture();
+        setProfile((prev) => ({
+          ...prev,
+          profile_picture_url: null,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to update profile picture:', error);
+    }
+  };
 
   const getInitials = (name = '') => {
     return name
@@ -180,13 +204,35 @@ const SuperAdminLayout = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent className='w-72 p-0' align='end' forceMount>
               <DropdownMenuLabel className='bg-surface-variant/30 p-4 font-normal'>
-                <div className='flex flex-col space-y-1'>
-                  <p className='text-sm font-medium leading-none text-on-surface'>
-                    {user?.name}
-                  </p>
-                  <p className='text-xs leading-none text-on-surface-variant'>
-                    {user?.email}
-                  </p>
+                <div className='flex flex-col items-center space-y-2'>
+                  <div className='relative'>
+                    <Avatar className='h-16 w-16 border-2 border-primary'>
+                      <AvatarImage
+                        src={profile?.profile_picture_url}
+                        alt={user?.name}
+                      />
+                      <AvatarFallback className='bg-primary-container text-xl text-on-primary-container'>
+                        {getInitials(user?.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setIsProfileManagerOpen(true);
+                      }}
+                      className='text-on-primary absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full bg-primary shadow-md hover:bg-primary/90'
+                    >
+                      <Icon name='photo_camera' className='h-3 w-3' />
+                    </button>
+                  </div>
+                  <div className='flex flex-col items-center text-center'>
+                    <p className='text-sm font-medium leading-none text-on-surface'>
+                      {user?.name}
+                    </p>
+                    <p className='text-xs leading-none text-on-surface-variant'>
+                      {user?.email}
+                    </p>
+                  </div>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className='my-0' />
@@ -265,6 +311,12 @@ const SuperAdminLayout = () => {
           <Outlet />
         </main>
       </div>
+      <ProfilePictureManager
+        isOpen={isProfileManagerOpen}
+        onClose={() => setIsProfileManagerOpen(false)}
+        onSuccess={handleProfileUpdate}
+        currentImage={profile?.profile_picture_url}
+      />
     </div>
   );
 };

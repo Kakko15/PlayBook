@@ -21,7 +21,12 @@ const MODEL_URL =
   'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@latest/model/';
 const MIN_HUMAN_AGE = 5;
 
-const ProfilePictureManager = ({ isOpen, onClose, onSuccess }) => {
+const ProfilePictureManager = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  currentImage,
+}) => {
   const [image, setImage] = useState(null);
   const [scale, setScale] = useState(1.2);
   const [mode, setMode] = useState('main');
@@ -264,6 +269,20 @@ const ProfilePictureManager = ({ isOpen, onClose, onSuccess }) => {
               className='hidden'
             />
             <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
+              {currentImage && (
+                <div className='col-span-1 flex flex-col items-center justify-center space-y-2 sm:col-span-2'>
+                  <div className='overflow-hidden rounded-full border-4 border-primary/20'>
+                    <img
+                      src={currentImage}
+                      alt='Current Profile'
+                      className='h-32 w-32 object-cover'
+                    />
+                  </div>
+                  <p className='text-sm text-muted-foreground'>
+                    Current Picture
+                  </p>
+                </div>
+              )}
               <Button
                 variant='outline'
                 onClick={() => fileInputRef.current.click()}
