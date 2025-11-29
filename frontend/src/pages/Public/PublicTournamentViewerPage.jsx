@@ -9,7 +9,7 @@ import GameIcon from '@/components/GameIcon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/Icon';
 import Logo from '@/components/Logo';
-import BracketDisplay from '@/components/BracketDisplay';
+
 import {
   getGameDetails,
   formatDateRange,
@@ -348,7 +348,13 @@ const PlayoffsTab = ({ matches }) => {
     );
   }
 
-  return <BracketDisplay matches={playoffMatches} isAdmin={false} />;
+  return (
+    <div className='space-y-4'>
+      {playoffMatches.map((match) => (
+        <MatchCard key={match.id} match={match} />
+      ))}
+    </div>
+  );
 };
 
 export default PublicTournamentViewerPage;

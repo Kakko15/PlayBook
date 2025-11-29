@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/hooks/useTheme';
+
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { motion, Reorder } from 'framer-motion';
@@ -34,7 +34,7 @@ const getStatus = (startDate) => {
 
 const AdminDashboard = () => {
   const { user } = useAuth();
-  const { isDark, toggleTheme } = useTheme();
+
   const navigate = useNavigate();
   const [pendingUsers, setPendingUsers] = useState([]);
   const [pendingMatches, setPendingMatches] = useState([]);
@@ -213,18 +213,6 @@ const AdminDashboard = () => {
             <h1 className='font-sans text-2xl font-bold tracking-tight text-on-surface'>
               Dashboard
             </h1>
-            <Button
-              variant='ghost'
-              size='icon'
-              onClick={toggleTheme}
-              className='rounded-full'
-              aria-label='Toggle theme'
-            >
-              <Icon
-                name={isDark ? 'light_mode' : 'dark_mode'}
-                className='text-xl'
-              />
-            </Button>
           </div>
         </header>
 
