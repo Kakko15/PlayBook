@@ -31,11 +31,7 @@ const ActionItem = ({ icon, title, description, to, colorClass }) => (
   </Link>
 );
 
-const NeedsAction = ({
-  pendingUsers = [],
-  pendingMatches = [],
-  analytics = null,
-}) => {
+const NeedsAction = ({ pendingUsers = [], pendingMatches = [] }) => {
   const { user } = useAuth();
   const isSuperAdmin = user.role === USER_ROLES.SUPER_ADMIN;
 
@@ -61,23 +57,6 @@ const NeedsAction = ({
       to: `/admin/tournament/${pendingMatches[0].tournament_id}`,
       colorClass: 'bg-secondary-container text-on-secondary-container',
     });
-  }
-
-  if (isSuperAdmin && analytics?.winPredictor) {
-    const lastUpdated = new Date(analytics.winPredictor.updated_at);
-    const now = new Date();
-    const daysSinceUpdate = (now - lastUpdated) / (1000 * 60 * 60 * 24);
-
-    if (daysSinceUpdate > 7) {
-      actions.push({
-        id: 'models',
-        icon: 'model_training',
-        title: 'Data Models are Stale',
-        description: `Models last trained ${Math.floor(daysSinceUpdate)} days ago.`,
-        to: '/superadmin/system',
-        colorClass: 'bg-tertiary-container text-on-tertiary-container',
-      });
-    }
   }
 
   return (

@@ -349,7 +349,7 @@ const UserManagementPage = () => {
                       <span
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           user.role === 'super_admin'
-                            ? 'text-on-tertiary-container bg-tertiary-container'
+                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
                             : 'bg-secondary-container text-on-secondary-container'
                         }`}
                       >

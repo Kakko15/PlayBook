@@ -9,7 +9,9 @@ import {
   createBackup,
   getBackups,
   restoreBackup,
+  deleteBackup,
   resetUserPassword,
+  clearActivityLog,
 } from "../controllers/superAdminController.js";
 import { protect, isSuperAdmin } from "../middleware/authMiddleware.js";
 
@@ -29,5 +31,8 @@ router.delete("/users/delete/:id", deleteUser);
 router.post("/system/backup", createBackup);
 router.get("/system/backups", getBackups);
 router.post("/system/restore", restoreBackup);
+router.delete("/system/backup/:id", deleteBackup);
+
+router.delete("/activity/clear", clearActivityLog);
 
 export default router;

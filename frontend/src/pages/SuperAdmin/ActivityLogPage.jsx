@@ -58,6 +58,17 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alertDialog';
+import { buttonVariants } from '@/components/ui/button';
 
 const ActivityItem = ({ item, onAction }) => (
   <motion.div
@@ -105,6 +116,8 @@ const ActivityLogPage = () => {
   });
   const [selectedItem, setSelectedItem] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isClearAlertOpen, setIsClearAlertOpen] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const scrollContainerRef = useRef(null);
 
   const fetchAllActivity = async (page, limit) => {
@@ -150,12 +163,46 @@ const ActivityLogPage = () => {
     }
   };
 
+  const handleClearHistory = async () => {
+    setIsClearing(true);
+    try {
+      await api.clearActivityLog();
+      toast.success('Activity log cleared successfully.');
+      fetchAllActivity(1, pagination.limit);
+      setIsClearAlertOpen(false);
+    } catch (error) {
+      toast.error('Failed to clear activity log.');
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   return (
     <div className='p-8'>
-      <h1 className='text-3xl font-bold text-foreground'>Full Activity Log</h1>
-      <p className='mt-2 text-muted-foreground'>
-        A chronological log of all system and user activities.
-      </p>
+      <div className='flex items-center justify-between'>
+        <div>
+          <h1 className='text-3xl font-bold text-foreground'>
+            Full Activity Log
+          </h1>
+          <p className='mt-2 text-muted-foreground'>
+            A chronological log of all system and user activities.
+          </p>
+        </div>
+        {activity.length > 0 && (
+          <Button
+            variant='destructive'
+            onClick={() => setIsClearAlertOpen(true)}
+            disabled={isLoading || isClearing}
+          >
+            {isClearing ? (
+              <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+            ) : (
+              <Icon name='delete_sweep' className='mr-2' />
+            )}
+            Clear All History
+          </Button>
+        )}
+      </div>
 
       <div className='mt-8 flex flex-col gap-4'>
         <div className='rounded-lg border border-border bg-card'>
@@ -354,6 +401,27 @@ const ActivityLogPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isClearAlertOpen} onOpenChange={setIsClearAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear Activity Log?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete all
+              activity log entries.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearHistory}
+              className={buttonVariants({ variant: 'destructive' })}
+            >
+              Yes, Clear All History
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

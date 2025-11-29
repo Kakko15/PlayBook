@@ -241,6 +241,12 @@ const api = {
     });
     return data;
   },
+  deleteBackup: async (backupId) => {
+    const { data } = await apiClient.delete(
+      `/superadmin/system/backup/${backupId}`
+    );
+    return data;
+  },
 
   createTournament: async (tournamentData) => {
     const { data } = await apiClient.post('/tournaments', tournamentData);
@@ -440,6 +446,10 @@ const api = {
     const { data } = await apiClient.get(
       `/activity/all?page=${page}&limit=${limit}`
     );
+    return data;
+  },
+  clearActivityLog: async () => {
+    const { data } = await apiClient.delete('/superadmin/activity/clear');
     return data;
   },
 };

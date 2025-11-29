@@ -17,7 +17,7 @@ const DropdownMenuSub = DropdownMenuPrimitive.Sub;
 const DropdownMenuRadioGroup = DropdownMenuPrimitive.RadioGroup;
 
 const DropdownMenuSubTrigger = React.forwardRef(
-  ({ className, inset, children, ...props }, ref) => (
+  ({ className, inset, children, chevron, ...props }, ref) => (
     <DropdownMenuPrimitive.SubTrigger
       ref={ref}
       className={cn(
@@ -28,7 +28,11 @@ const DropdownMenuSubTrigger = React.forwardRef(
       {...props}
     >
       {children}
-      <ChevronRight className='ml-auto h-4 w-4' />
+      {chevron !== undefined ? (
+        chevron
+      ) : (
+        <ChevronRight className='ml-auto h-4 w-4' />
+      )}
     </DropdownMenuPrimitive.SubTrigger>
   )
 );

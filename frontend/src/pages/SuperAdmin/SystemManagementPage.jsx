@@ -15,25 +15,17 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alertDialog';
 import { buttonVariants } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 
 const SystemManagementPage = () => {
   const [backups, setBackups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [isRestoring, setIsRestoring] = useState(null);
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(null);
+  const [isRestoreAlertOpen, setIsRestoreAlertOpen] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [backupToRestore, setBackupToRestore] = useState(null);
-
-  const [isTrainingArchetypes, setIsTrainingArchetypes] = useState(false);
-  const [isTrainingPredictor, setIsTrainingPredictor] = useState(false);
+  const [backupToDelete, setBackupToDelete] = useState(null);
 
   const fetchBackups = async () => {
     setIsLoading(true);
@@ -66,13 +58,13 @@ const SystemManagementPage = () => {
 
   const handleRestoreClick = (backup) => {
     setBackupToRestore(backup);
-    setIsAlertOpen(true);
+    setIsRestoreAlertOpen(true);
   };
 
   const confirmRestore = async () => {
     if (!backupToRestore) return;
     setIsRestoring(backupToRestore.id);
-    setIsAlertOpen(false);
+    setIsRestoreAlertOpen(false);
     try {
       const { message } = await api.restoreBackup(backupToRestore.storage_path);
       toast.success(message);
@@ -84,36 +76,24 @@ const SystemManagementPage = () => {
     }
   };
 
-  const handleTrainArchetypes = async () => {
-    setIsTrainingArchetypes(true);
-    try {
-      const { message } = await api.trainArchetypeModel('basketball');
-      toast.success(message);
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message || 'Failed to train archetype model.'
-      );
-    } finally {
-      setIsTrainingArchetypes(false);
-    }
+  const handleDeleteClick = (backup) => {
+    setBackupToDelete(backup);
+    setIsDeleteAlertOpen(true);
   };
 
-  const handleTrainPredictor = async () => {
-    setIsTrainingPredictor(true);
+  const confirmDelete = async () => {
+    if (!backupToDelete) return;
+    setIsDeleting(backupToDelete.id);
+    setIsDeleteAlertOpen(false);
     try {
-      const defaultCoefficients = {
-        intercept: 0.0,
-        elo_diff: 0.005,
-        win_streak_diff: 0.0,
-      };
-      const { message } = await api.trainWinPredictor(defaultCoefficients);
+      const { message } = await api.deleteBackup(backupToDelete.id);
       toast.success(message);
+      fetchBackups();
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || 'Failed to train win predictor.'
-      );
+      toast.error(error.response?.data?.message || 'Failed to delete backup.');
     } finally {
-      setIsTrainingPredictor(false);
+      setIsDeleting(null);
+      setBackupToDelete(null);
     }
   };
 
@@ -123,11 +103,9 @@ const SystemManagementPage = () => {
         <h1 className='text-3xl font-bold text-foreground'>
           System Management
         </h1>
-        <p className='mt-2 text-muted-foreground'>
-          Manage database backups and data science models.
-        </p>
+        <p className='mt-2 text-muted-foreground'>Manage database backups.</p>
 
-        <div className='mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2'>
+        <div className='mt-8'>
           <div className='rounded-lg border border-border bg-card p-6'>
             <div className='flex items-center justify-between'>
               <h2 className='text-xl font-semibold text-foreground'>
@@ -166,78 +144,50 @@ const SystemManagementPage = () => {
                         {new Date(backup.created_at).toLocaleString()}
                       </p>
                     </div>
-                    <Button
-                      variant='outline'
-                      size='sm'
-                      onClick={() => handleRestoreClick(backup)}
-                      disabled={isRestoring === backup.id}
-                    >
-                      {isRestoring === backup.id ? (
-                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                      ) : (
-                        <Icon name='restore' className='mr-2' />
-                      )}
-                      Restore
-                    </Button>
+                    <div className='flex gap-2'>
+                      <Button
+                        variant='outline'
+                        size='sm'
+                        onClick={() => handleRestoreClick(backup)}
+                        disabled={
+                          isRestoring === backup.id || isDeleting === backup.id
+                        }
+                      >
+                        {isRestoring === backup.id ? (
+                          <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                        ) : (
+                          <Icon name='restore' className='mr-2' />
+                        )}
+                        Restore
+                      </Button>
+                      <Button
+                        variant='destructive'
+                        size='sm'
+                        onClick={() => handleDeleteClick(backup)}
+                        disabled={
+                          isRestoring === backup.id || isDeleting === backup.id
+                        }
+                      >
+                        {isDeleting === backup.id ? (
+                          <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                        ) : (
+                          <Icon name='delete' className='mr-2' />
+                        )}
+                        Delete
+                      </Button>
+                    </div>
                   </div>
                 ))
               )}
             </div>
           </div>
-
-          <div className='rounded-lg border border-border bg-card p-6'>
-            <h2 className='text-xl font-semibold text-foreground'>
-              Data Science Models
-            </h2>
-            <div className='mt-6 space-y-4'>
-              <div className='space-y-2'>
-                <Label>Train Player Archetypes (K-Means Mock)</Label>
-                <div className='flex gap-2'>
-                  <Button
-                    onClick={handleTrainArchetypes}
-                    disabled={isTrainingArchetypes}
-                    className='w-full flex-shrink-0'
-                  >
-                    {isTrainingArchetypes ? (
-                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                    ) : (
-                      <Icon name='model_training' className='mr-2' />
-                    )}
-                    Train Basketball Model
-                  </Button>
-                </div>
-                <p className='text-xs text-muted-foreground'>
-                  This processes player stats to assign archetypes (e.g.,
-                  "Scorer") and calculates stat vectors for KNN.
-                </p>
-              </div>
-
-              <div className='space-y-2'>
-                <Label>Train Win Predictor (Logistic Regression)</Label>
-                <Button
-                  onClick={handleTrainPredictor}
-                  disabled={isTrainingPredictor}
-                  className='w-full'
-                  variant='outline'
-                >
-                  {isTrainingPredictor ? (
-                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-                  ) : (
-                    <Icon name='model_training' className='mr-2' />
-                  )}
-                  Save/Update Model Coefficients
-                </Button>
-                <p className='text-xs text-muted-foreground'>
-                  Saves the (mock) coefficients for the match win predictor
-                  model.
-                </p>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+      <AlertDialog
+        open={isRestoreAlertOpen}
+        onOpenChange={setIsRestoreAlertOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -254,6 +204,28 @@ const SystemManagementPage = () => {
               className={buttonVariants({ variant: 'destructive' })}
             >
               Yes, Restore Database
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Backup?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              backup file{' '}
+              <span className='font-bold'>{backupToDelete?.file_name}</span>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className={buttonVariants({ variant: 'destructive' })}
+            >
+              Yes, Delete Backup
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -11,7 +11,6 @@ import NeedsAction from '@/components/dashboard/NeedsAction';
 import QuickActions from '@/components/dashboard/QuickActions';
 import WelcomeBanner from '@/components/dashboard/WelcomeBanner';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
-import ArchetypePieChart from '@/components/dashboard/ArchetypePieChart';
 import EngagementChart from '@/components/dashboard/EngagementChart';
 import SystemHealth from '@/components/dashboard/SystemHealth';
 import CreateTournamentModal from '@/components/CreateTournamentModal';
@@ -40,7 +39,6 @@ const AdminDashboard = () => {
   const [pendingUsers, setPendingUsers] = useState([]);
   const [pendingMatches, setPendingMatches] = useState([]);
   const [tournaments, setTournaments] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
   const [engagementData, setEngagementData] = useState([]);
   const [backups, setBackups] = useState([]);
   const [stats, setStats] = useState({ total: 0, ongoing: 0, upcoming: 0 });
@@ -57,28 +55,23 @@ const AdminDashboard = () => {
       const tournamentDataPromise = api.getMyTournaments();
       let pendingUsersPromise = Promise.resolve([]);
       let allUsersPromise = Promise.resolve([]);
-      let analyticsPromise = Promise.resolve(null);
       let backupsPromise = Promise.resolve([]);
 
       if (user.role === USER_ROLES.SUPER_ADMIN) {
         pendingUsersPromise = api.getPendingUsers();
         allUsersPromise = api.getAllUsers();
-        analyticsPromise = api.getGlobalAnalytics();
         backupsPromise = api.getBackups();
       }
 
-      const [data, pendingData, allUsersData, analyticsData, backupData] =
-        await Promise.all([
-          tournamentDataPromise,
-          pendingUsersPromise,
-          allUsersPromise,
-          analyticsPromise,
-          backupsPromise,
-        ]);
+      const [data, pendingData, allUsersData, backupData] = await Promise.all([
+        tournamentDataPromise,
+        pendingUsersPromise,
+        allUsersPromise,
+        backupsPromise,
+      ]);
 
       setPendingUsers(pendingData);
       setTournaments(data);
-      if (analyticsData) setAnalytics(analyticsData);
       if (backupData) setBackups(backupData);
 
       if (user.role === USER_ROLES.SUPER_ADMIN) {
@@ -376,15 +369,6 @@ const AdminDashboard = () => {
             <motion.div variants={itemVariants}>
               <ActivityFeed />
             </motion.div>
-
-            {user.role === USER_ROLES.SUPER_ADMIN && (
-              <motion.div variants={itemVariants}>
-                <ArchetypePieChart
-                  analytics={analytics}
-                  isLoading={isLoading}
-                />
-              </motion.div>
-            )}
           </div>
 
           <div className='flex flex-col gap-6 lg:col-span-1'>
@@ -392,7 +376,6 @@ const AdminDashboard = () => {
               <NeedsAction
                 pendingUsers={pendingUsers}
                 pendingMatches={pendingMatches}
-                analytics={analytics}
               />
             </motion.div>
             <motion.div variants={itemVariants}>

@@ -56,51 +56,51 @@
   }
 
   .dark {
-    --background: 144 12.1% 6.1%;
-    --foreground: 144 11.1% 89.8%;
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 144 12.1% 6.1%;
-    --card-foreground: 144 11.1% 89.8%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 144 12.1% 6.1%;
-    --popover-foreground: 144 11.1% 89.8%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 149 69.9% 79.2%;
-    --primary-foreground: 149 100% 16.3%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 355.7 100% 97.3%;
     --primary-container: 148 70.1% 31.2%;
     --on-primary-container: 149 70% 90.6%;
 
-    --secondary: 150 24.8% 77.1%;
-    --secondary-foreground: 150 24.3% 18.2%;
-    --secondary-container: 150 15.6% 33.3%;
-    --on-secondary-container: 150 25.1% 91.2%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --secondary-container: 0 0% 14.9%;
+    --on-secondary-container: 0 0% 98%;
 
     --tertiary: 172 38.3% 75.9%;
     --tertiary-foreground: 172 100% 10.6%;
     --tertiary-container: 172 26.6% 26.5%;
     --on-tertiary-container: 172 38.6% 90%;
 
-    --destructive: 0 100% 80.4%;
-    --destructive-foreground: 0 100% 18.2%;
-    --destructive-container: 0 100% 30.8%;
-    --on-destructive-container: 0 86.1% 91.8%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --destructive-container: 0 62.8% 30.6%;
+    --on-destructive-container: 0 0% 98%;
 
-    --muted: 210 4% 15.9%;
-    --muted-foreground: 210 4% 64.9%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
 
-    --accent: 210 4% 15.9%;
-    --accent-foreground: 210 4% 98%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
 
-    --border: 144 9.4% 35.1%;
-    --input: 144 9.4% 35.1%;
-    --ring: 149 69.9% 79.2%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 142 76% 36%;
 
-    --surface: 144 12.1% 6.1%;
-    --on-surface: 144 11.1% 89.8%;
-    --surface-variant: 144 9.6% 27.8%;
-    --on-surface-variant: 144 11.1% 80.2%;
-    --outline: 144 9.4% 54.3%;
-    --outline-variant: 144 9.6% 27.8%;
+    --surface: 0 0% 3.9%;
+    --on-surface: 0 0% 98%;
+    --surface-variant: 0 0% 14.9%;
+    --on-surface-variant: 0 0% 63.9%;
+    --outline: 0 0% 63.9%;
+    --outline-variant: 0 0% 14.9%;
 
     --radius: 1rem;
   }
@@ -109,6 +109,9 @@
 @layer base {
   * {
     @apply border-border;
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
   }
   body {
     @apply bg-background text-foreground;

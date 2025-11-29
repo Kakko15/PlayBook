@@ -328,3 +328,55 @@ export const restoreBackup = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteBackup = async (req, res, next) => {
+  const { id } = req.params;
+
+  try {
+    // First, get the backup record to find the storage path
+    const { data: backup, error: fetchError } = await supabase
+      .from("data_backups")
+      .select("storage_path")
+      .eq("id", id)
+      .single();
+
+    if (fetchError) return next(fetchError);
+    if (!backup) {
+      return res.status(404).json({ message: "Backup not found." });
+    }
+
+    // Delete the file from storage
+    const { error: storageError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .remove([backup.storage_path]);
+
+    if (storageError) return next(storageError);
+
+    // Delete the database record
+    const { error: dbError } = await supabase
+      .from("data_backups")
+      .delete()
+      .eq("id", id);
+
+    if (dbError) return next(dbError);
+
+    res.status(200).json({ message: "Backup deleted successfully." });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const clearActivityLog = async (req, res, next) => {
+  try {
+    const { error } = await supabase
+      .from("activity_log")
+      .delete()
+      .neq("id", "00000000-0000-0000-0000-000000000000"); // Delete all rows
+
+    if (error) return next(error);
+
+    res.status(200).json({ message: "Activity log cleared successfully." });
+  } catch (error) {
+    next(error);
+  }
+};

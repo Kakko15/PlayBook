@@ -6,7 +6,6 @@ import { containerVariants, itemVariants } from '@/lib/animations';
 import { StatCard } from '@/components/dashboard/StatCard';
 import NeedsAction from '@/components/dashboard/NeedsAction';
 import ActivityFeed from '@/components/dashboard/ActivityFeed';
-import ArchetypePieChart from '@/components/dashboard/ArchetypePieChart';
 import SystemHealth from '@/components/dashboard/SystemHealth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Icon from '@/components/Icon';
@@ -21,26 +20,19 @@ const SuperAdminDashboard = () => {
   });
   const [pendingUsers, setPendingUsers] = useState([]);
   const [tournaments, setTournaments] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
   const [backups, setBackups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [
-        allUsersData,
-        pendingUsersData,
-        analyticsData,
-        backupData,
-        tournamentData,
-      ] = await Promise.all([
-        api.getAllUsers(),
-        api.getPendingUsers(),
-        api.getGlobalAnalytics(),
-        api.getBackups(),
-        api.getMyTournaments(),
-      ]);
+      const [allUsersData, pendingUsersData, backupData, tournamentData] =
+        await Promise.all([
+          api.getAllUsers(),
+          api.getPendingUsers(),
+          api.getBackups(),
+          api.getMyTournaments(),
+        ]);
 
       setStats({
         totalUsers: allUsersData.length,
@@ -48,7 +40,6 @@ const SuperAdminDashboard = () => {
         totalTournaments: tournamentData.length,
       });
       setPendingUsers(pendingUsersData);
-      setAnalytics(analyticsData);
       setBackups(backupData);
       setTournaments(tournamentData);
     } catch (error) {
@@ -116,10 +107,6 @@ const SuperAdminDashboard = () => {
           </motion.div>
 
           <motion.div variants={itemVariants}>
-            <ArchetypePieChart analytics={analytics} isLoading={isLoading} />
-          </motion.div>
-
-          <motion.div variants={itemVariants}>
             <Card>
               <CardHeader className='flex-row items-center justify-between'>
                 <CardTitle>Recent Tournaments</CardTitle>
@@ -170,11 +157,7 @@ const SuperAdminDashboard = () => {
 
         <div className='flex flex-col gap-6 lg:col-span-1'>
           <motion.div variants={itemVariants}>
-            <NeedsAction
-              pendingUsers={pendingUsers}
-              pendingMatches={[]}
-              analytics={analytics}
-            />
+            <NeedsAction pendingUsers={pendingUsers} pendingMatches={[]} />
           </motion.div>
           <motion.div variants={itemVariants}>
             <SystemHealth backups={backups} isLoading={isLoading} />
