@@ -43,6 +43,7 @@ import UserManagementPage from '@/pages/SuperAdmin/UserManagementPage';
 import DepartmentManagementPage from '@/pages/SuperAdmin/DepartmentManagementPage';
 import SystemManagementPage from '@/pages/SuperAdmin/SystemManagementPage';
 import ActivityLogPage from '@/pages/SuperAdmin/ActivityLogPage';
+import AnalyticsPage from '@/pages/SuperAdmin/AnalyticsPage';
 
 import ScorerLayout from '@/pages/Scorer/ScorerLayout';
 import ScorerDashboard from '@/pages/Scorer/ScorerDashboard';
@@ -248,6 +249,7 @@ function App() {
           <Route path='users' element={<UserManagementPage />} />
           <Route path='departments' element={<DepartmentManagementPage />} />
           <Route path='system' element={<SystemManagementPage />} />
+          <Route path='analytics' element={<AnalyticsPage />} />
           <Route path='activity' element={<ActivityLogPage />} />
         </Route>
 

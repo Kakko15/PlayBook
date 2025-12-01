@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
@@ -18,6 +17,7 @@ const AnalyticsPage = () => {
         const data = await api.getGlobalAnalytics();
         setAnalytics(data);
       } catch (error) {
+        console.error('Analytics Error:', error);
         toast.error('Failed to load analytics data.');
       } finally {
         setIsLoading(false);
@@ -70,7 +70,9 @@ const AnalyticsPage = () => {
                 </pre>
                 <p className='mt-2 text-xs text-muted-foreground'>
                   Last trained:{' '}
-                  {new Date(winPredictor.updated_at).toLocaleString()}
+                  {winPredictor.updated_at
+                    ? new Date(winPredictor.updated_at).toLocaleString()
+                    : 'Unknown'}
                 </p>
               </div>
             ) : (

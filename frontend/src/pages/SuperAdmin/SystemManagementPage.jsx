@@ -26,6 +26,27 @@ const SystemManagementPage = () => {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [backupToRestore, setBackupToRestore] = useState(null);
   const [backupToDelete, setBackupToDelete] = useState(null);
+  const [isTraining, setIsTraining] = useState(false);
+
+  const handleTrainModel = async () => {
+    setIsTraining(true);
+    try {
+      // In a real scenario, we would fetch match data and calculate these.
+      // For now, we use standard default coefficients for ELO-based predictions.
+      const defaultCoefficients = {
+        intercept: 0,
+        elo_diff: 0.0025, // Standard ELO divisor 400 -> 1/400 approx 0.0025
+        win_streak_diff: 0.1,
+      };
+
+      await api.trainWinPredictor(defaultCoefficients);
+      toast.success('Win Predictor model trained successfully!');
+    } catch (error) {
+      toast.error('Failed to train model.');
+    } finally {
+      setIsTraining(false);
+    }
+  };
 
   const fetchBackups = async () => {
     setIsLoading(true);
@@ -179,6 +200,39 @@ const SystemManagementPage = () => {
                   </div>
                 ))
               )}
+            </div>
+          </div>
+
+          <div className='mt-8 rounded-lg border border-border bg-card p-6'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <h2 className='text-xl font-semibold text-foreground'>
+                  Data Science Models
+                </h2>
+                <p className='text-sm text-muted-foreground'>
+                  Manage and retrain predictive models.
+                </p>
+              </div>
+            </div>
+            <div className='mt-6'>
+              <div className='flex items-center justify-between rounded-lg border border-border p-4'>
+                <div>
+                  <p className='font-medium text-foreground'>
+                    Win Predictor (Logistic Regression)
+                  </p>
+                  <p className='text-sm text-muted-foreground'>
+                    Predicts match outcomes based on ELO and streaks.
+                  </p>
+                </div>
+                <Button onClick={handleTrainModel} disabled={isTraining}>
+                  {isTraining ? (
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                  ) : (
+                    <Icon name='model_training' className='mr-2' />
+                  )}
+                  Train Model
+                </Button>
+              </div>
             </div>
           </div>
         </div>

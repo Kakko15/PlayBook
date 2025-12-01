@@ -20,6 +20,7 @@ export const getGlobalAnalytics = async (req, res, next) => {
     }
 
     const model = modelData;
+    res.status(200).json({ winPredictor: model });
   } catch (modelCatchError) {
     console.error(
       "!!! [getGlobalAnalytics] UNHANDLED MODEL CATCH BLOCK ERROR:",
@@ -30,8 +31,6 @@ export const getGlobalAnalytics = async (req, res, next) => {
       error: modelCatchError.message,
     });
   }
-
-  res.status(200).json({ winPredictor: model });
 };
 
 export const trainWinPredictor = async (req, res, next) => {

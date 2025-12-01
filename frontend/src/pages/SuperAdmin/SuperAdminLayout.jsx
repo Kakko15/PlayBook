@@ -39,6 +39,7 @@ const navItems = [
     label: 'Departments',
   },
   { to: '/superadmin/system', icon: 'settings', label: 'System' },
+  { to: '/superadmin/analytics', icon: 'analytics', label: 'Analytics' },
   { to: '/superadmin/activity', icon: 'manage_history', label: 'Activity Log' },
 ];
 

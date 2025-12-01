@@ -16,12 +16,15 @@ import {
   getStatus,
 } from '@/lib/tournamentUtils.jsx';
 import { cn } from '@/lib/utils';
+import SimilarPlayersModal from '@/components/SimilarPlayersModal';
 
 const PublicTournamentViewerPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [details, setDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [isSimilarPlayersOpen, setIsSimilarPlayersOpen] = useState(false);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -39,6 +42,11 @@ const PublicTournamentViewerPage = () => {
     };
     fetchDetails();
   }, [id, navigate]);
+
+  const handleCompare = (player) => {
+    setSelectedPlayer(player);
+    setIsSimilarPlayersOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -105,7 +113,7 @@ const PublicTournamentViewerPage = () => {
             <ScheduleTab matches={matches} />
           </TabsContent>
           <TabsContent value='teams' className='mt-6'>
-            <TeamsTab teams={teams} />
+            <TeamsTab teams={teams} onCompare={handleCompare} />
           </TabsContent>
           <TabsContent value='playoffs' className='mt-6'>
             <div className='flex h-48 flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-card'>
@@ -123,6 +131,13 @@ const PublicTournamentViewerPage = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      <SimilarPlayersModal
+        isOpen={isSimilarPlayersOpen}
+        onClose={() => setIsSimilarPlayersOpen(false)}
+        player={selectedPlayer}
+        game={tournament.game}
+      />
     </motion.div>
   );
 };
@@ -285,7 +300,7 @@ const TeamDisplay = ({ team, score, isWinner, isReversed = false }) => (
   </div>
 );
 
-const TeamsTab = ({ teams }) => (
+const TeamsTab = ({ teams, onCompare }) => (
   <div className='grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3'>
     {teams.map((team) => (
       <div
@@ -310,15 +325,29 @@ const TeamsTab = ({ teams }) => (
         </div>
         <div className='mt-4 space-y-2'>
           {team.players.map((player) => (
-            <div key={player.id} className='flex items-center gap-2'>
-              <img
-                src={`https://avatar.vercel.sh/${player.name}.png`}
-                alt={player.name}
-                className='h-6 w-6 rounded-full'
-              />
-              <span className='text-sm text-muted-foreground'>
-                {player.name}
-              </span>
+            <div
+              key={player.id}
+              className='flex items-center justify-between rounded-md p-1 hover:bg-muted/50'
+            >
+              <div className='flex items-center gap-2'>
+                <img
+                  src={`https://avatar.vercel.sh/${player.name}.png`}
+                  alt={player.name}
+                  className='h-6 w-6 rounded-full'
+                />
+                <span className='text-sm text-muted-foreground'>
+                  {player.name}
+                </span>
+              </div>
+              <Button
+                variant='ghost'
+                size='icon'
+                className='h-6 w-6 text-muted-foreground hover:text-primary'
+                onClick={() => onCompare(player)}
+                title='Find Similar Players'
+              >
+                <Icon name='compare_arrows' className='text-base' />
+              </Button>
             </div>
           ))}
         </div>
