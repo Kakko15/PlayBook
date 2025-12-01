@@ -5,7 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
-const PickemMatchCard = ({ match, myPick, onPickSuccess }) => {
+const PickemMatchCard = ({
+  match,
+  myPick,
+  onPickSuccess,
+  guestInfo,
+  isAuthenticated,
+  onGuestLoginRequired,
+}) => {
   const [loadingPick, setLoadingPick] = useState(null);
   const [prediction, setPrediction] = useState(null);
   const isPending = match.status === 'pending';
@@ -21,9 +28,14 @@ const PickemMatchCard = ({ match, myPick, onPickSuccess }) => {
   }, [match.id, isPending, match.team1, match.team2]);
 
   const handlePick = async (teamId) => {
+    if (!isAuthenticated && !guestInfo?.guest_name) {
+      onGuestLoginRequired();
+      return;
+    }
+
     setLoadingPick(teamId);
     try {
-      const { pick } = await api.makePick(match.id, teamId);
+      const { pick } = await api.makePick(match.id, teamId, guestInfo);
       onPickSuccess(pick);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to save pick.');
@@ -62,7 +74,7 @@ const PickemMatchCard = ({ match, myPick, onPickSuccess }) => {
           </span>
         )}
       </div>
-      <div className='grid grid-cols-1 items-center gap-4 sm:grid-cols-3'>
+      <div className='grid grid-cols-1 items-center gap-4 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]'>
         <TeamButton
           team={match.team1}
           score={match.team1_score}
@@ -72,6 +84,7 @@ const PickemMatchCard = ({ match, myPick, onPickSuccess }) => {
           isDisabled={!isPending || loadingPick}
           pickStatusIcon={getPickStatusIcon(match.team1_id)}
           isWinner={match.team1_score > match.team2_score}
+          className='min-w-0'
         />
 
         <div className='text-center font-bold text-muted-foreground'>VS</div>
@@ -86,6 +99,7 @@ const PickemMatchCard = ({ match, myPick, onPickSuccess }) => {
           pickStatusIcon={getPickStatusIcon(match.team2_id)}
           isWinner={match.team2_score > match.team1_score}
           isReversed
+          className='min-w-0'
         />
       </div>
       {isPending && prediction && (
@@ -102,6 +116,20 @@ const PickemMatchCard = ({ match, myPick, onPickSuccess }) => {
   );
 };
 
+const DEPARTMENT_COLORS = {
+  CBAPA: '080e88',
+  CCJE: '7d0608',
+  CA: '174008',
+  CED: '217580',
+  COE: '4c0204',
+  CCSICT: 'fda003',
+  CON: 'd60685',
+  SVM: '464646',
+  CAS: 'dac607',
+  IOF: '018d99',
+  COM: '2c9103',
+};
+
 const TeamButton = ({
   team,
   score,
@@ -112,43 +140,50 @@ const TeamButton = ({
   pickStatusIcon,
   isWinner,
   isReversed = false,
+  className,
 }) => {
+  const isOldLogo =
+    team?.logo_url && team.logo_url.includes('avatar.vercel.sh');
+  const acronym =
+    team?.department?.acronym || team?.name?.substring(0, 2).toUpperCase();
+  const color = DEPARTMENT_COLORS[acronym] || '64748b';
+  const logoSrc =
+    team?.logo_url && !isOldLogo
+      ? team.logo_url
+      : `https://ui-avatars.com/api/?name=${encodeURIComponent(acronym || 'TBD')}&background=${color}&color=fff&size=128&bold=true&length=4`;
+
   return (
     <Button
       variant='outline'
       onClick={onClick}
       disabled={isDisabled}
       className={cn(
-        'h-auto w-full justify-between p-3 transition-all',
+        'h-auto w-full justify-between overflow-hidden p-3 transition-all',
         isSelected && 'border-primary ring-2 ring-primary ring-offset-2',
-        !isWinner && score != null && 'opacity-50'
+        !isWinner && score != null && 'opacity-50',
+        isReversed && 'flex-row-reverse',
+        className
       )}
     >
       <div
         className={cn(
-          'flex flex-1 items-center gap-3',
-          isReversed && 'flex-row-reverse'
+          'flex flex-1 items-center gap-3 overflow-hidden',
+          isReversed ? 'flex-row-reverse text-right' : 'flex-row text-left'
         )}
       >
         <img
-          src={
-            team?.logo_url ||
-            `https://avatar.vercel.sh/${team?.name || 'TBD'}.png`
-          }
+          src={logoSrc}
           alt={`${team?.name || 'TBD'} logo`}
-          className='h-8 w-8 rounded-full bg-muted'
-          onError={(e) => {
-            e.currentTarget.src = `https://avatar.vercel.sh/${team?.name || 'TBD'}.png`;
-          }}
+          className='h-8 w-8 flex-shrink-0 rounded-full bg-muted'
         />
-        <span className='truncate font-medium text-foreground'>
-          {team?.name || 'TBD'}
+        <span className='min-w-0 flex-1 truncate font-medium text-foreground'>
+          {team?.department?.acronym || team?.name || 'TBD'}
         </span>
       </div>
 
       <div
         className={cn(
-          'flex items-center gap-2',
+          'flex flex-shrink-0 items-center gap-2',
           isReversed ? 'flex-row-reverse' : 'flex-row'
         )}
       >

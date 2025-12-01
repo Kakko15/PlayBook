@@ -4,6 +4,20 @@ import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 import SortableTable from '@/components/ui/SortableTable';
 
+const DEPARTMENT_COLORS = {
+  CBAPA: '080e88',
+  CCJE: '7d0608',
+  CA: '174008',
+  CED: '217580',
+  COE: '4c0204',
+  CCSICT: 'fda003',
+  CON: 'd60685',
+  SVM: '464646',
+  CAS: 'dac607',
+  IOF: '018d99',
+  COM: '2c9103',
+};
+
 const StandingsTab = ({ tournamentId }) => {
   const [standings, setStandings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,19 +60,28 @@ const StandingsTab = ({ tournamentId }) => {
       header: 'Team',
       sortable: true,
       filterable: true,
-      renderCell: (row) => (
-        <div className='flex items-center gap-3'>
-          <img
-            src={row.logo_url || `https://avatar.vercel.sh/${row.name}.png`}
-            alt={`${row.name} logo`}
-            className='h-8 w-8 rounded-full bg-muted'
-            onError={(e) => {
-              e.currentTarget.src = `https://avatar.vercel.sh/${row.name}.png`;
-            }}
-          />
-          <span className='font-medium text-foreground'>{row.name}</span>
-        </div>
-      ),
+      renderCell: (row) => {
+        const isOldLogo =
+          row.logo_url && row.logo_url.includes('avatar.vercel.sh');
+        const acronym =
+          row.department?.acronym || row.name.substring(0, 2).toUpperCase();
+        const color = DEPARTMENT_COLORS[acronym] || '64748b';
+        const logoSrc =
+          row.logo_url && !isOldLogo
+            ? row.logo_url
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(acronym)}&background=${color}&color=fff&size=128&bold=true&length=4`;
+
+        return (
+          <div className='flex items-center gap-3'>
+            <img
+              src={logoSrc}
+              alt={`${row.name} logo`}
+              className='h-8 w-8 rounded-full bg-muted'
+            />
+            <span className='font-medium text-foreground'>{row.name}</span>
+          </div>
+        );
+      },
     },
     {
       key: 'wl',

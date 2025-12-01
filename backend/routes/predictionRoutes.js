@@ -8,7 +8,7 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.use(protect);
+// router.use(protect); // Disabled to allow guest picks
 
 router.post("/make-pick", makePick);
 router.get("/:tournamentId/my-picks", getMyPicks);

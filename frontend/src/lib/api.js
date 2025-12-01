@@ -391,16 +391,19 @@ const api = {
     return data;
   },
 
-  makePick: async (match_id, predicted_winner_team_id) => {
+  makePick: async (match_id, predicted_winner_team_id, guestInfo = {}) => {
     const { data } = await apiClient.post('/predictions/make-pick', {
       match_id,
       predicted_winner_team_id,
+      ...guestInfo,
     });
     return data;
   },
-  getMyPicks: async (tournamentId) => {
+  getMyPicks: async (tournamentId, guest_id) => {
+    const params = guest_id ? { guest_id } : {};
     const { data } = await apiClient.get(
-      `/predictions/${tournamentId}/my-picks`
+      `/predictions/${tournamentId}/my-picks`,
+      { params }
     );
     return data;
   },

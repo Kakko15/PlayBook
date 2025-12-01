@@ -7,22 +7,65 @@ import { cn } from '@/lib/utils';
 import PickemMatchCard from '@/components/PickemMatchCard';
 import Icon from '@/components/Icon';
 import SortableTable from '@/components/ui/SortableTable';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 
 const PickemsTab = ({ tournamentId }) => {
   const [leaderboard, setLeaderboard] = useState([]);
   const [matches, setMatches] = useState([]);
   const [myPicks, setMyPicks] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [guestName, setGuestName] = useState('');
+  const [guestId, setGuestId] = useState('');
+  const [showGuestModal, setShowGuestModal] = useState(false);
+  const [tempGuestName, setTempGuestName] = useState('');
 
   const { user } = useAuth();
+
+  useEffect(() => {
+    // Initialize guest ID if not present
+    const storedGuestId = localStorage.getItem('pickems_guest_id');
+    const storedGuestName = localStorage.getItem('pickems_guest_name');
+
+    if (storedGuestId) {
+      setGuestId(storedGuestId);
+    } else {
+      const newId = crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      localStorage.setItem('pickems_guest_id', newId);
+      setGuestId(newId);
+    }
+
+    if (storedGuestName) {
+      setGuestName(storedGuestName);
+    }
+  }, []);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
+      // If user is not logged in, we need a guest ID to fetch picks
+      // But guest ID is set in useEffect, which might run after this if we are not careful.
+      // However, fetchData is called in useEffect dependent on [tournamentId],
+      // and the guest ID useEffect runs on mount.
+      // We should probably pass guestId as a dependency or read from localStorage directly here.
+
+      const currentGuestId = localStorage.getItem('pickems_guest_id');
+
       const [boardData, scheduleData, picksData] = await Promise.all([
         api.getPickLeaderboard(tournamentId),
         api.getSchedule(tournamentId),
-        api.getMyPicks(tournamentId),
+        api.getMyPicks(tournamentId, !user ? currentGuestId : null),
       ]);
 
       setLeaderboard(boardData);
@@ -39,7 +82,7 @@ const PickemsTab = ({ tournamentId }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [tournamentId]);
+  }, [tournamentId, user]);
 
   useEffect(() => {
     fetchData();
@@ -51,6 +94,17 @@ const PickemsTab = ({ tournamentId }) => {
       [pick.match_id]: pick,
     }));
     toast.success('Pick saved!');
+  };
+
+  const handleGuestLoginSubmit = () => {
+    if (!tempGuestName.trim()) {
+      toast.error('Please enter a name.');
+      return;
+    }
+    localStorage.setItem('pickems_guest_name', tempGuestName.trim());
+    setGuestName(tempGuestName.trim());
+    setShowGuestModal(false);
+    toast.success(`Welcome, ${tempGuestName}! You can now make picks.`);
   };
 
   if (isLoading) {
@@ -79,10 +133,14 @@ const PickemsTab = ({ tournamentId }) => {
         <span
           className={cn(
             'font-medium',
-            row.user_id === user.id ? 'text-primary' : 'text-foreground'
+            (user && row.user_id === user.id) ||
+              (!user && row.guest_id === guestId)
+              ? 'text-primary'
+              : 'text-foreground'
           )}
         >
           {row.name}
+          {!user && row.guest_id === guestId && ' (You)'}
         </span>
       ),
     },
@@ -111,6 +169,17 @@ const PickemsTab = ({ tournamentId }) => {
         <h2 className='text-2xl font-semibold text-foreground'>
           Make Your Picks
         </h2>
+        {!user && !guestName && (
+          <div className='mb-4 flex items-center justify-between rounded-lg border border-border bg-muted/50 p-4'>
+            <div>
+              <h3 className='font-semibold'>Playing as Guest</h3>
+              <p className='text-sm text-muted-foreground'>
+                Enter a name to start making picks and join the leaderboard.
+              </p>
+            </div>
+            <Button onClick={() => setShowGuestModal(true)}>Enter Name</Button>
+          </div>
+        )}
         <div className='space-y-4'>
           {matches.length === 0 ? (
             <div className='flex h-48 flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-card'>
@@ -132,6 +201,9 @@ const PickemsTab = ({ tournamentId }) => {
                 match={match}
                 myPick={myPicks[match.id]}
                 onPickSuccess={handlePickSuccess}
+                isAuthenticated={!!user}
+                guestInfo={{ guest_id: guestId, guest_name: guestName }}
+                onGuestLoginRequired={() => setShowGuestModal(true)}
               />
             ))
           )}
@@ -146,7 +218,10 @@ const PickemsTab = ({ tournamentId }) => {
           data={leaderboard.map((entry) => ({
             ...entry,
             rowClassName:
-              entry.user_id === user.id ? 'bg-primary-container' : '',
+              (user && entry.user_id === user.id) ||
+              (!user && entry.guest_id === guestId)
+                ? 'bg-primary-container'
+                : '',
           }))}
           columns={leaderboardColumns}
           defaultSortKey='total_points'
@@ -154,6 +229,35 @@ const PickemsTab = ({ tournamentId }) => {
           emptyMessage='No predictions made yet.'
         />
       </div>
+
+      <Dialog open={showGuestModal} onOpenChange={setShowGuestModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enter Your Name</DialogTitle>
+            <DialogDescription>
+              Please enter a display name to track your picks on the
+              leaderboard.
+            </DialogDescription>
+          </DialogHeader>
+          <div className='grid gap-4 py-4'>
+            <div className='grid grid-cols-4 items-center gap-4'>
+              <Label htmlFor='name' className='text-right'>
+                Name
+              </Label>
+              <Input
+                id='name'
+                value={tempGuestName}
+                onChange={(e) => setTempGuestName(e.target.value)}
+                className='col-span-3'
+                placeholder='e.g. John Doe'
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleGuestLoginSubmit}>Start Picking</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

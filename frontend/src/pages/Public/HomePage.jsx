@@ -168,8 +168,8 @@ const HomePage = () => {
     about: (
       <div className='space-y-4 text-sm text-muted-foreground'>
         <p>
-          PlayBook V4 is the official sports management solution for Isabela
-          State University - Echague Campus.
+          PlayBook is the official sports management solution for Isabela State
+          University - Echague Campus.
         </p>
         <p>
           Developed by the BSCS Data Mining Track students, this system replaces
@@ -208,14 +208,30 @@ const HomePage = () => {
   ];
 
   const departments = [
-    { name: 'College of Computing Studies', acronym: 'CCS' },
-    { name: 'College of Business Admin', acronym: 'CBA' },
-    { name: 'College of Arts & Sciences', acronym: 'CAS' },
-    { name: 'College of Engineering', acronym: 'CEAT' },
-    { name: 'College of Nursing', acronym: 'CON' },
-    { name: 'College of Education', acronym: 'EDUC' },
-    { name: 'College of Agriculture', acronym: 'AGRI' },
-    { name: 'Criminal Justice', acronym: 'CCJE' },
+    {
+      name: 'College of Computing Studies',
+      acronym: 'CCS',
+      color: 'text-orange-500',
+    },
+    {
+      name: 'College of Business Admin',
+      acronym: 'CBA',
+      color: 'text-yellow-500',
+    },
+    {
+      name: 'College of Arts & Sciences',
+      acronym: 'CAS',
+      color: 'text-blue-500',
+    },
+    { name: 'College of Engineering', acronym: 'CEAT', color: 'text-red-600' },
+    { name: 'College of Nursing', acronym: 'CON', color: 'text-green-500' },
+    { name: 'College of Education', acronym: 'EDUC', color: 'text-pink-500' },
+    {
+      name: 'College of Agriculture',
+      acronym: 'AGRI',
+      color: 'text-emerald-600',
+    },
+    { name: 'Criminal Justice', acronym: 'CCJE', color: 'text-violet-600' },
   ];
 
   const containerVariants = {
@@ -491,10 +507,8 @@ const HomePage = () => {
                   (dept, index) => (
                     <div
                       key={index}
-                      className='flex items-center gap-2 text-2xl font-bold text-muted-foreground/50 transition-colors hover:text-foreground'
+                      className={`flex items-center gap-2 text-4xl font-black tracking-tighter transition-all hover:scale-110 hover:opacity-80 ${dept.color}`}
                     >
-                      {/* Placeholder for Logo */}
-                      <div className='h-8 w-8 rounded-full bg-current opacity-20' />
                       {dept.acronym}
                     </div>
                   )

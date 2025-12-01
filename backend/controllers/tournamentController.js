@@ -627,7 +627,7 @@ export const getStandings = async (req, res, next) => {
   try {
     const { data, error } = await supabase
       .from("teams")
-      .select("*")
+      .select("*, department:departments(acronym)")
       .eq("tournament_id", tournament_id)
       .order("wins", { ascending: false })
       .order("losses", { ascending: true })

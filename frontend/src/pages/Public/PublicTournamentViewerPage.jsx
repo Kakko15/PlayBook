@@ -9,6 +9,8 @@ import GameIcon from '@/components/GameIcon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Icon from '@/components/Icon';
 import Logo from '@/components/Logo';
+import { useAuth } from '@/hooks/useAuth';
+import PickemsTab from '@/pages/Dashboard/PickemsTab';
 
 import {
   getGameDetails,
@@ -25,6 +27,7 @@ const PublicTournamentViewerPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [isSimilarPlayersOpen, setIsSimilarPlayersOpen] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -87,7 +90,7 @@ const PublicTournamentViewerPage = () => {
 
       <main className='flex-1 p-4 md:p-8'>
         <Tabs defaultValue='standings' className='w-full'>
-          <TabsList className='grid w-full grid-cols-1 sm:grid-cols-4'>
+          <TabsList className='grid w-full grid-cols-1 sm:grid-cols-5'>
             <TabsTrigger value='standings'>
               <Icon name='leaderboard' className='mr-0 h-4 w-4 sm:mr-2' />
               <span className='hidden sm:inline'>Standings</span>
@@ -103,6 +106,10 @@ const PublicTournamentViewerPage = () => {
             <TabsTrigger value='playoffs'>
               <Icon name='emoji_events' className='mr-0 h-4 w-4 sm:mr-2' />
               <span className='hidden sm:inline'>Playoffs</span>
+            </TabsTrigger>
+            <TabsTrigger value='pickems'>
+              <Icon name='how_to_vote' className='mr-0 h-4 w-4 sm:mr-2' />
+              <span className='hidden sm:inline'>Pick'ems</span>
             </TabsTrigger>
           </TabsList>
 
@@ -128,6 +135,9 @@ const PublicTournamentViewerPage = () => {
                 The bracket will be available once the group stage is complete.
               </p>
             </div>
+          </TabsContent>
+          <TabsContent value='pickems' className='mt-6'>
+            <PickemsTab tournamentId={tournament.id} />
           </TabsContent>
         </Tabs>
       </main>

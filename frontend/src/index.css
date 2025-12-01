@@ -32,7 +32,8 @@
     --on-surface-variant: 240 3.8% 46.1%;
     --outline: 240 5.9% 90%;
     --outline-variant: 240 5.9% 90%;
-    --on-primary-container: 355.7 100% 97.3%;
+    --primary-container: 142 71% 90%;
+    --on-primary-container: 142 71% 10%;
     --on-secondary-container: 240 5.9% 10%;
   }
 
@@ -62,7 +63,8 @@
     --on-surface-variant: 240 5% 64.9%;
     --outline: 240 3.7% 15.9%;
     --outline-variant: 240 3.7% 15.9%;
-    --on-primary-container: 144 9.6% 10%;
+    --primary-container: 142 70% 20%;
+    --on-primary-container: 142 70% 90%;
     --on-secondary-container: 0 0% 98%;
   }
 }

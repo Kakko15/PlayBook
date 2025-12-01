@@ -1,13 +1,19 @@
 import supabase from "../supabaseClient.js";
 
 export const makePick = async (req, res, next) => {
-  const { userId } = req.user;
-  const { match_id, predicted_winner_team_id } = req.body;
+  const userId = req.user?.userId;
+  const { match_id, predicted_winner_team_id, guest_id, guest_name } = req.body;
 
   if (!match_id || !predicted_winner_team_id) {
     return res
       .status(400)
       .json({ message: "Match ID and predicted winner ID are required." });
+  }
+
+  if (!userId && (!guest_id || !guest_name)) {
+    return res
+      .status(401)
+      .json({ message: "You must be logged in or provide guest details." });
   }
 
   try {
@@ -27,19 +33,28 @@ export const makePick = async (req, res, next) => {
       });
     }
 
+    const payload = {
+      match_id,
+      predicted_winner_team_id,
+      status: "pending",
+    };
+
+    let conflictTarget = "";
+
+    if (userId) {
+      payload.user_id = userId;
+      conflictTarget = "user_id, match_id";
+    } else {
+      payload.guest_id = guest_id;
+      payload.guest_name = guest_name;
+      conflictTarget = "guest_id, match_id";
+    }
+
     const { data, error } = await supabase
       .from("predictions")
-      .upsert(
-        {
-          user_id: userId,
-          match_id,
-          predicted_winner_team_id,
-          status: "pending",
-        },
-        {
-          onConflict: "user_id, match_id",
-        }
-      )
+      .upsert(payload, {
+        onConflict: conflictTarget,
+      })
       .select();
 
     if (error) return next(error);
@@ -52,22 +67,33 @@ export const makePick = async (req, res, next) => {
 };
 
 export const getMyPicks = async (req, res, next) => {
-  const { userId } = req.user;
+  const userId = req.user?.userId;
+  const { guest_id } = req.query;
   const { tournamentId } = req.params;
 
+  if (!userId && !guest_id) {
+    // If no ID provided, just return empty list instead of error,
+    // so frontend doesn't break for new guests
+    return res.status(200).json([]);
+  }
+
   try {
-    const { data, error } = await supabase
-      .from("predictions")
-      .select(
-        `
+    let query = supabase.from("predictions").select(
+      `
         match_id,
         predicted_winner_team_id,
         status,
         match:matches!inner(tournament_id)
       `
-      )
-      .eq("user_id", userId)
-      .eq("match.tournament_id", tournamentId);
+    );
+
+    if (userId) {
+      query = query.eq("user_id", userId);
+    } else {
+      query = query.eq("guest_id", guest_id);
+    }
+
+    const { data, error } = await query.eq("match.tournament_id", tournamentId);
 
     if (error) return next(error);
     res.status(200).json(data);
