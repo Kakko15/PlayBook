@@ -11,7 +11,6 @@ import TeamsTab from './TeamsTab';
 import ScheduleTab from './ScheduleTab';
 import StandingsTab from './StandingsTab';
 import PlayoffsTab from './PlayoffsTab';
-import PickemsTab from './PickemsTab';
 import RankingsTab from './RankingsTab';
 import AwardsTab from './AwardsTab';
 import Icon from '@/components/Icon';
@@ -90,7 +89,7 @@ const TournamentWorkspace = () => {
 
         <main className='flex-1 p-4 md:p-8'>
           <Tabs defaultValue='teams' className='w-full'>
-            <TabsList className='grid w-full grid-cols-1 sm:grid-cols-8'>
+            <TabsList className='grid w-full grid-cols-1 sm:grid-cols-7'>
               <TabsTrigger value='teams'>
                 <Icon name='group' className='mr-0 h-4 w-4 sm:mr-2' />
                 <span className='hidden sm:inline'>Teams</span>
@@ -107,10 +106,7 @@ const TournamentWorkspace = () => {
                 <Icon name='emoji_events' className='mr-0 h-4 w-4 sm:mr-2' />
                 <span className='hidden sm:inline'>Playoffs</span>
               </TabsTrigger>
-              <TabsTrigger value='pickems'>
-                <Icon name='how_to_vote' className='mr-0 h-4 w-4 sm:mr-2' />
-                <span className='hidden sm:inline'>Pick'ems</span>
-              </TabsTrigger>
+
               <TabsTrigger value='rankings'>
                 <Icon
                   name='workspace_premium'
@@ -152,9 +148,7 @@ const TournamentWorkspace = () => {
                 game={tournament.game}
               />
             </TabsContent>
-            <TabsContent value='pickems' className='mt-6'>
-              <PickemsTab tournamentId={tournament.id} />
-            </TabsContent>
+
             <TabsContent value='rankings' className='mt-6'>
               <RankingsTab tournamentId={tournament.id} />
             </TabsContent>
