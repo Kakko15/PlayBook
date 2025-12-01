@@ -29,6 +29,7 @@ const ProfilePictureManager = ({
 }) => {
   const [image, setImage] = useState(null);
   const [scale, setScale] = useState(1.2);
+  const [rotate, setRotate] = useState(0);
   const [mode, setMode] = useState('main');
   const [isLoading, setIsLoading] = useState(false);
   const [modelsLoading, setModelsLoading] = useState(true);
@@ -150,6 +151,7 @@ const ProfilePictureManager = ({
   const handleClose = () => {
     setImage(null);
     setScale(1.2);
+    setRotate(0);
     setMode('main');
     onClose();
   };
@@ -189,19 +191,45 @@ const ProfilePictureManager = ({
                 borderRadius={125}
                 color={[255, 255, 255, 0.6]}
                 scale={scale}
-                rotate={0}
+                rotate={rotate}
               />
             </div>
             <div className='mt-4 space-y-2'>
               <Label htmlFor='scale'>Zoom</Label>
-              <Slider
-                id='scale'
-                min={1}
-                max={2}
-                step={0.01}
-                value={[scale]}
-                onValueChange={(val) => setScale(val[0])}
-              />
+              <div className='flex items-center gap-3'>
+                <Icon name='image' className='text-xs text-muted-foreground' />
+                <Slider
+                  id='scale'
+                  min={1}
+                  max={2}
+                  step={0.01}
+                  value={[scale]}
+                  onValueChange={(val) => setScale(val[0])}
+                  className='flex-1'
+                />
+                <Icon name='image' className='text-xl text-muted-foreground' />
+              </div>
+            </div>
+            <div className='mt-4 flex justify-center space-x-4'>
+              <Button
+                variant='outline'
+                onClick={() => setRotate((prev) => (prev + 90) % 360)}
+                type='button'
+              >
+                <Icon name='rotate_right' className='mr-2' />
+                Rotate
+              </Button>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  setScale(1.2);
+                  setRotate(0);
+                }}
+                type='button'
+              >
+                <Icon name='refresh' className='mr-2' />
+                Reset
+              </Button>
             </div>
             <DialogFooter className='mt-4'>
               <Button
