@@ -106,12 +106,85 @@ export const getLeaderboard = async (req, res, next) => {
   const { tournamentId } = req.params;
 
   try {
-    const { data, error } = await supabase.rpc("get_pickems_leaderboard", {
-      p_tournament_id: tournamentId,
-    });
+    const { data: predictions, error } = await supabase
+      .from("predictions")
+      .select(
+        `
+        user_id,
+        guest_id,
+        guest_name,
+        predicted_winner_team_id,
+        match:matches!inner (
+          team1_id,
+          team2_id,
+          team1_score,
+          team2_score
+        ),
+        user:users (
+          name
+        )
+      `
+      )
+      .eq("match.tournament_id", tournamentId)
+      .eq("match.status", "completed");
 
     if (error) return next(error);
-    res.status(200).json(data);
+
+    const scores = {};
+
+    predictions.forEach((p) => {
+      const isGuest = !p.user_id;
+      const id = isGuest ? p.guest_id : p.user_id;
+      const name = isGuest ? p.guest_name : p.user?.name || "Unknown User";
+
+      if (!scores[id]) {
+        scores[id] = {
+          id,
+          name,
+          points: 0,
+          total_predictions: 0,
+          isGuest,
+        };
+      }
+
+      scores[id].total_predictions += 1;
+
+      // Calculate the winner from match scores
+      if (
+        p.match &&
+        p.match.team1_score != null &&
+        p.match.team2_score != null
+      ) {
+        const actualWinnerId =
+          p.match.team1_score > p.match.team2_score
+            ? p.match.team1_id
+            : p.match.team2_id;
+
+        if (p.predicted_winner_team_id === actualWinnerId) {
+          scores[id].points += 1;
+        }
+      }
+    });
+
+    const leaderboard = Object.values(scores)
+      .sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        return a.total_predictions - b.total_predictions;
+      })
+      .map((entry, index) => ({
+        rank: index + 1,
+        name: entry.name,
+        points: entry.points,
+        total_predictions: entry.total_predictions,
+        accuracy:
+          entry.total_predictions > 0
+            ? Number(
+                ((entry.points / entry.total_predictions) * 100).toFixed(1)
+              )
+            : 0,
+      }));
+
+    res.status(200).json(leaderboard);
   } catch (error) {
     next(error);
   }
