@@ -73,9 +73,6 @@ const SimilarPlayersModal = ({ isOpen, onClose, player, game }) => {
                   </Avatar>
                   <div>
                     <p className='font-semibold text-foreground'>{p.name}</p>
-                    <p className='text-sm text-muted-foreground'>
-                      Archetype: {p.archetype || 'N/A'}
-                    </p>
                   </div>
                 </div>
                 <div className='text-right'>

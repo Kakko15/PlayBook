@@ -411,10 +411,6 @@ const api = {
     return data;
   },
 
-  trainArchetypeModel: async (game) => {
-    const { data } = await apiClient.post('/ds/train/archetypes', { game });
-    return data;
-  },
   trainWinPredictor: async (coefficients) => {
     const { data } = await apiClient.post('/ds/train/win-predictor', {
       coefficients,

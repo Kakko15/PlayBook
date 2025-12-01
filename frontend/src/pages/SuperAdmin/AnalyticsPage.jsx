@@ -1,17 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
@@ -57,15 +45,7 @@ const AnalyticsPage = () => {
     );
   }
 
-  const { archetypes, winPredictor } = analytics;
-
-  const processArchetypeData = (game) => {
-    return archetypes
-      .filter((a) => a.game === game)
-      .map((a) => ({ name: a.archetype, count: a.count }));
-  };
-
-  const basketballData = processArchetypeData('basketball');
+  const { winPredictor } = analytics;
 
   return (
     <div className='p-8'>
@@ -75,29 +55,6 @@ const AnalyticsPage = () => {
       </p>
 
       <div className='mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3'>
-        <Card className='lg:col-span-2'>
-          <CardHeader>
-            <CardTitle>Player Archetype Distribution (K-Means)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {basketballData.length > 0 && (
-              <>
-                <h3 className='mb-4 text-lg font-semibold'>Basketball</h3>
-                <ResponsiveContainer width='100%' height={300}>
-                  <BarChart data={basketballData}>
-                    <CartesianGrid strokeDasharray='3 3' />
-                    <XAxis dataKey='name' />
-                    <YAxis allowDecimals={false} />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey='count' fill='#FF9100' />
-                  </BarChart>
-                </ResponsiveContainer>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader>
             <CardTitle>Win Predictor (Logistic Regression)</CardTitle>

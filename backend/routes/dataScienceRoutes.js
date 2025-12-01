@@ -1,6 +1,5 @@
 import express from "express";
 import {
-  trainArchetypeModel,
   trainWinPredictor,
   getSimilarPlayers,
   getMatchPrediction,
@@ -12,7 +11,6 @@ const router = express.Router();
 
 router.get("/global-analytics", protect, isSuperAdmin, getGlobalAnalytics);
 
-router.post("/train/archetypes", protect, isSuperAdmin, trainArchetypeModel);
 router.post("/train/win-predictor", protect, isSuperAdmin, trainWinPredictor);
 
 router.get("/similar-players/:playerId", protect, getSimilarPlayers);

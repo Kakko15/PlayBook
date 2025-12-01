@@ -1,36 +1,6 @@
 import supabase from "../supabaseClient.js";
 
 export const getGlobalAnalytics = async (req, res, next) => {
-  let archetypes, model;
-
-  try {
-    const { data: rpcData, error: archetypeError } = await supabase.rpc(
-      "get_archetype_counts"
-    );
-
-    if (archetypeError) {
-      console.error(
-        "!!! [getGlobalAnalytics] Supabase Archetype RPC Error:",
-        archetypeError
-      );
-      return res.status(500).json({
-        message: "Failed to get archetype data from RPC.",
-        error: archetypeError.message,
-      });
-    }
-
-    archetypes = rpcData;
-  } catch (rpcCatchError) {
-    console.error(
-      "!!! [getGlobalAnalytics] UNHANDLED RPC CATCH BLOCK ERROR:",
-      rpcCatchError
-    );
-    return res.status(500).json({
-      message: "An unexpected error occurred trying to call the RPC.",
-      error: rpcCatchError.message,
-    });
-  }
-
   try {
     const { data: modelData, error: modelError } = await supabase
       .from("model_coefficients")
@@ -49,7 +19,7 @@ export const getGlobalAnalytics = async (req, res, next) => {
       });
     }
 
-    model = modelData;
+    const model = modelData;
   } catch (modelCatchError) {
     console.error(
       "!!! [getGlobalAnalytics] UNHANDLED MODEL CATCH BLOCK ERROR:",
@@ -61,40 +31,7 @@ export const getGlobalAnalytics = async (req, res, next) => {
     });
   }
 
-  res.status(200).json({ archetypes, winPredictor: model });
-};
-
-export const trainArchetypeModel = async (req, res, next) => {
-  const { game } = req.body;
-  if (!game) {
-    return res.status(400).json({ message: "Game type is required." });
-  }
-
-  try {
-    const { error: metricsError } = await supabase.rpc(
-      "calculate_player_metrics",
-      { p_game_type: game }
-    );
-    if (metricsError) return next(metricsError);
-
-    const { error: vectorError } = await supabase.rpc(
-      "calculate_player_stats_vector",
-      { p_game_type: game }
-    );
-    if (vectorError) return next(vectorError);
-
-    const { error: archetypeError } = await supabase.rpc(
-      "assign_player_archetypes",
-      { p_game_type: game }
-    );
-    if (archetypeError) return next(archetypeError);
-
-    res
-      .status(200)
-      .json({ message: `Player archetype model "trained" for ${game}.` });
-  } catch (error) {
-    next(error);
-  }
+  res.status(200).json({ winPredictor: model });
 };
 
 export const trainWinPredictor = async (req, res, next) => {
