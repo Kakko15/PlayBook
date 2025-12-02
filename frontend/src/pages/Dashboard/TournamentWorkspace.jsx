@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
@@ -50,6 +50,15 @@ const TournamentWorkspace = () => {
     }
   }, [id, navigate]);
 
+  const [activeTab, setActiveTab] = useState(
+    () => localStorage.getItem(`tournament-tab-${id}`) || 'teams'
+  );
+
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+    localStorage.setItem(`tournament-tab-${id}`, value);
+  };
+
   if (isLoading) {
     return (
       <div className='flex h-screen items-center justify-center'>
@@ -64,10 +73,7 @@ const TournamentWorkspace = () => {
 
   return (
     <>
-      <motion.div
-        layoutId={`tournament-card-${tournament.id}`}
-        className='flex min-h-screen flex-col bg-background'
-      >
+      <div className='flex min-h-screen flex-col bg-background'>
         <header className='flex items-center gap-4 border-b border-border bg-card p-4'>
           <Button
             variant='ghost'
@@ -88,7 +94,11 @@ const TournamentWorkspace = () => {
         </header>
 
         <main className='flex-1 p-4 md:p-8'>
-          <Tabs defaultValue='teams' className='w-full'>
+          <Tabs
+            value={activeTab}
+            onValueChange={handleTabChange}
+            className='w-full'
+          >
             <TabsList className='grid w-full grid-cols-1 sm:grid-cols-7'>
               <TabsTrigger value='teams'>
                 <Icon name='group' className='mr-0 h-4 w-4 sm:mr-2' />
@@ -157,7 +167,7 @@ const TournamentWorkspace = () => {
             </TabsContent>
           </Tabs>
         </main>
-      </motion.div>
+      </div>
       <TournamentSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}

@@ -353,7 +353,7 @@ const TeamDisplay = ({ team, score, isWinner, isReversed = false }) => {
             isWinner ? 'text-foreground' : 'text-muted-foreground'
           )}
         >
-          {team?.name || 'TBD'}
+          {team ? acronym : 'TBD'}
         </span>
         {team?.name && (
           <span className='text-xs font-medium text-muted-foreground'>

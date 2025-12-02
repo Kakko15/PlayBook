@@ -35,7 +35,10 @@ const POSITIONS = ['PG', 'SG', 'SF', 'PF', 'C'];
 const YEARS = ['1', '2', '3', '4', '5'];
 
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'Name is required.' }),
+  name: z
+    .string()
+    .min(2, { message: 'Name is required.' })
+    .regex(/^[^0-9]*$/, { message: 'Name cannot contain numbers.' }),
   student_id: z.string().min(5, { message: 'Student ID is required.' }),
   jersey: z.coerce.number().min(0).max(99).optional(),
   year_level: z.enum(YEARS, {
@@ -171,6 +174,9 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
                       placeholder='e.g., "Juan Dela Cruz"'
                       disabled={isLoading}
                       {...field}
+                      onChange={(e) => {
+                        field.onChange(e.target.value.replace(/[0-9]/g, ''));
+                      }}
                     />
                   </FormControl>
                   <FormMessage />
