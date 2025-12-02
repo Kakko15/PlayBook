@@ -31,6 +31,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const getStatSchema = (game) => {
   switch (game) {
@@ -79,8 +85,23 @@ const getFormSchema = (game) =>
     ),
   });
 
+const DEPARTMENT_COLORS = {
+  CBAPA: '#080e88',
+  CCJE: '#7d0608',
+  CA: '#174008',
+  CED: '#217580',
+  COE: '#4c0204',
+  CCSICT: '#fda003',
+  CON: '#d60685',
+  SVM: '#464646',
+  CAS: '#dac607',
+  IOF: '#018d99',
+  COM: '#2c9103',
+};
+
 const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
   const [matchDetails, setMatchDetails] = useState(null);
   const [activeTab, setActiveTab] = useState('team1');
 
@@ -132,6 +153,7 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
 
   useEffect(() => {
     const fetchDetails = async () => {
+      setIsFetching(true);
       try {
         const data = await api.getMatchDetails(match.id);
         setMatchDetails(data);
@@ -169,6 +191,8 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
         });
       } catch (error) {
         toast.error('Failed to load match details.');
+      } finally {
+        setIsFetching(false);
       }
     };
 
@@ -201,26 +225,54 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
       case 'basketball':
       default:
         return [
-          { key: 'minutes_played', label: 'MIN' },
-          { key: 'pts', label: 'PTS' },
-          { key: 'fg_made', label: 'FGM' },
-          { key: 'fg_attempted', label: 'FGA' },
-          { key: 'three_pt_made', label: '3PM' },
-          { key: 'three_pt_attempted', label: '3PA' },
-          { key: 'ft_made', label: 'FTM' },
-          { key: 'ft_attempted', label: 'FTA' },
-          { key: 'reb', label: 'REB' },
-          { key: 'oreb', label: 'OREB' },
-          { key: 'dreb', label: 'DREB' },
-          { key: 'ast', label: 'AST' },
-          { key: 'steals', label: 'STL' },
-          { key: 'blocks', label: 'BLK' },
-          { key: 'turnovers', label: 'TO' },
-          { key: 'personal_fouls', label: 'PF' },
-          { key: 'technical_fouls', label: 'TF' },
-          { key: 'fouls_drawn', label: 'FD' },
-          { key: 'games_started', label: 'GS' },
-          { key: 'sportsmanship_rating', label: 'SPRT' },
+          {
+            key: 'minutes_played',
+            label: 'MIN',
+            description: 'Minutes Played',
+          },
+          { key: 'pts', label: 'PTS', description: 'Points Scored' },
+          { key: 'fg_made', label: 'FGM', description: 'Field Goals Made' },
+          {
+            key: 'fg_attempted',
+            label: 'FGA',
+            description: 'Field Goals Attempted',
+          },
+          {
+            key: 'three_pt_made',
+            label: '3PM',
+            description: '3-Point Field Goals Made',
+          },
+          {
+            key: 'three_pt_attempted',
+            label: '3PA',
+            description: '3-Point Field Goals Attempted',
+          },
+          { key: 'ft_made', label: 'FTM', description: 'Free Throws Made' },
+          {
+            key: 'ft_attempted',
+            label: 'FTA',
+            description: 'Free Throws Attempted',
+          },
+          { key: 'reb', label: 'REB', description: 'Total Rebounds' },
+          { key: 'oreb', label: 'OREB', description: 'Offensive Rebounds' },
+          { key: 'dreb', label: 'DREB', description: 'Defensive Rebounds' },
+          { key: 'ast', label: 'AST', description: 'Assists' },
+          { key: 'steals', label: 'STL', description: 'Steals' },
+          { key: 'blocks', label: 'BLK', description: 'Blocks' },
+          { key: 'turnovers', label: 'TO', description: 'Turnovers' },
+          { key: 'personal_fouls', label: 'PF', description: 'Personal Fouls' },
+          {
+            key: 'technical_fouls',
+            label: 'TF',
+            description: 'Technical Fouls',
+          },
+          { key: 'fouls_drawn', label: 'FD', description: 'Fouls Drawn' },
+          { key: 'games_started', label: 'GS', description: 'Games Started' },
+          {
+            key: 'sportsmanship_rating',
+            label: 'SPRT',
+            description: 'Sportsmanship Rating',
+          },
         ];
     }
   };
@@ -234,196 +286,302 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
           <DialogTitle>Log Match Result</DialogTitle>
         </DialogHeader>
 
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className='flex flex-1 flex-col overflow-hidden bg-background'
-          >
-            {/* Header Section */}
-            <div className='flex flex-col border-b bg-card p-6 shadow-sm'>
-              <div className='mb-6 flex items-center justify-between'>
-                <div className='flex items-center gap-4'>
-                  <div className='flex h-16 w-16 items-center justify-center rounded-full bg-muted text-2xl font-bold text-muted-foreground'>
-                    {matchDetails?.team1?.name?.substring(0, 2).toUpperCase()}
+        {isFetching ? (
+          <div className='flex h-full items-center justify-center'>
+            <Loader2 className='h-12 w-12 animate-spin text-primary' />
+          </div>
+        ) : (
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className='flex flex-1 flex-col overflow-hidden bg-background'
+            >
+              {/* Header Section */}
+              <div className='flex flex-col border-b bg-card p-6 shadow-sm'>
+                <div className='mb-6 flex items-center justify-between'>
+                  <div className='flex items-center gap-4'>
+                    <div
+                      className='flex h-16 w-16 items-center justify-center rounded-full bg-muted text-2xl font-bold text-white shadow-md'
+                      style={{
+                        backgroundColor:
+                          DEPARTMENT_COLORS[
+                            matchDetails?.team1?.department?.acronym
+                          ] || '#64748b',
+                      }}
+                    >
+                      {matchDetails?.team1?.department?.acronym
+                        ?.substring(0, 2)
+                        .toUpperCase() ||
+                        matchDetails?.team1?.name
+                          ?.substring(0, 2)
+                          .toUpperCase()}
+                    </div>
+                    <div>
+                      <h2
+                        className='text-3xl font-black tracking-tight'
+                        style={{
+                          color:
+                            DEPARTMENT_COLORS[
+                              matchDetails?.team1?.department?.acronym
+                            ],
+                        }}
+                      >
+                        {matchDetails?.team1?.department?.acronym ||
+                          matchDetails?.team1?.name}
+                      </h2>
+                      <p className='text-sm font-medium text-muted-foreground'>
+                        Home
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className='text-2xl font-bold'>
-                      {matchDetails?.team1?.name}
-                    </h2>
-                    <p className='text-muted-foreground'>Home</p>
+
+                  <div className='flex items-center gap-8'>
+                    <FormField
+                      control={form.control}
+                      name='team1_score'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              type='number'
+                              className='h-20 w-32 border-2 text-center text-5xl font-black'
+                              style={{
+                                borderColor:
+                                  DEPARTMENT_COLORS[
+                                    matchDetails?.team1?.department?.acronym
+                                  ],
+                              }}
+                              disabled
+                              {...field}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <span className='text-4xl font-light text-muted-foreground'>
+                      -
+                    </span>
+                    <FormField
+                      control={form.control}
+                      name='team2_score'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <Input
+                              type='number'
+                              className='h-20 w-32 border-2 text-center text-5xl font-black'
+                              style={{
+                                borderColor:
+                                  DEPARTMENT_COLORS[
+                                    matchDetails?.team2?.department?.acronym
+                                  ],
+                              }}
+                              disabled
+                              {...field}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className='flex items-center gap-4 text-right'>
+                    <div>
+                      <h2
+                        className='text-3xl font-black tracking-tight'
+                        style={{
+                          color:
+                            DEPARTMENT_COLORS[
+                              matchDetails?.team2?.department?.acronym
+                            ],
+                        }}
+                      >
+                        {matchDetails?.team2?.department?.acronym ||
+                          matchDetails?.team2?.name}
+                      </h2>
+                      <p className='text-sm font-medium text-muted-foreground'>
+                        Away
+                      </p>
+                    </div>
+                    <div
+                      className='flex h-16 w-16 items-center justify-center rounded-full bg-muted text-2xl font-bold text-white shadow-md'
+                      style={{
+                        backgroundColor:
+                          DEPARTMENT_COLORS[
+                            matchDetails?.team2?.department?.acronym
+                          ] || '#64748b',
+                      }}
+                    >
+                      {matchDetails?.team2?.department?.acronym
+                        ?.substring(0, 2)
+                        .toUpperCase() ||
+                        matchDetails?.team2?.name
+                          ?.substring(0, 2)
+                          .toUpperCase()}
+                    </div>
                   </div>
                 </div>
 
-                <div className='flex items-center gap-8'>
+                <div className='grid grid-cols-3 gap-4'>
                   <FormField
                     control={form.control}
-                    name='team1_score'
+                    name='round_name'
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Input
-                            type='number'
-                            className='h-16 w-24 text-center text-4xl font-bold'
-                            disabled
-                            {...field}
-                          />
+                          <Input placeholder='Game #' {...field} />
                         </FormControl>
                       </FormItem>
                     )}
                   />
-                  <span className='text-4xl font-light text-muted-foreground'>
-                    -
-                  </span>
                   <FormField
                     control={form.control}
-                    name='team2_score'
+                    name='match_date'
                     render={({ field }) => (
                       <FormItem>
                         <FormControl>
-                          <Input
-                            type='number'
-                            className='h-16 w-24 text-center text-4xl font-bold'
-                            disabled
-                            {...field}
-                          />
+                          <Input type='datetime-local' {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name='venue'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          {(game || '').toLowerCase() === 'basketball' ? (
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              value={field.value || undefined}
+                              disabled={isLoading}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder='Select venue' />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value='Open Gym'>
+                                  Open Gym
+                                </SelectItem>
+                                <SelectItem value='Close Gym'>
+                                  Close Gym
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input placeholder='Venue' {...field} />
+                          )}
                         </FormControl>
                       </FormItem>
                     )}
                   />
                 </div>
-
-                <div className='flex items-center gap-4 text-right'>
-                  <div>
-                    <h2 className='text-2xl font-bold'>
-                      {matchDetails?.team2?.name}
-                    </h2>
-                    <p className='text-muted-foreground'>Away</p>
-                  </div>
-                  <div className='flex h-16 w-16 items-center justify-center rounded-full bg-muted text-2xl font-bold text-muted-foreground'>
-                    {matchDetails?.team2?.name?.substring(0, 2).toUpperCase()}
-                  </div>
-                </div>
               </div>
 
-              <div className='grid grid-cols-3 gap-4'>
-                <FormField
-                  control={form.control}
-                  name='round_name'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input placeholder='Round' {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='match_date'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input type='datetime-local' {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name='venue'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        {(game || '').toLowerCase() === 'basketball' ? (
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            value={field.value || undefined}
-                            disabled={isLoading}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder='Select venue' />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value='Open Gym'>Open Gym</SelectItem>
-                              <SelectItem value='Close Gym'>
-                                Close Gym
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input placeholder='Venue' {...field} />
-                        )}
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+              {/* Tabs & Table Section */}
+              <div className='flex-1 overflow-hidden'>
+                <Tabs
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  className='flex h-full flex-col'
+                >
+                  <div className='border-b px-6'>
+                    <TabsList className='flex w-full justify-center bg-transparent p-0'>
+                      <TabsTrigger
+                        value='team1'
+                        className='rounded-none border-b-4 border-transparent px-8 py-3 text-lg font-bold transition-all data-[state=active]:bg-transparent'
+                        style={{
+                          color:
+                            activeTab === 'team1'
+                              ? DEPARTMENT_COLORS[
+                                  matchDetails?.team1?.department?.acronym
+                                ]
+                              : undefined,
+                          borderColor:
+                            activeTab === 'team1'
+                              ? DEPARTMENT_COLORS[
+                                  matchDetails?.team1?.department?.acronym
+                                ]
+                              : 'transparent',
+                        }}
+                      >
+                        {matchDetails?.team1?.department?.acronym ||
+                          matchDetails?.team1?.name?.toUpperCase()}
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value='team2'
+                        className='rounded-none border-b-4 border-transparent px-8 py-3 text-lg font-bold transition-all data-[state=active]:bg-transparent'
+                        style={{
+                          color:
+                            activeTab === 'team2'
+                              ? DEPARTMENT_COLORS[
+                                  matchDetails?.team2?.department?.acronym
+                                ]
+                              : undefined,
+                          borderColor:
+                            activeTab === 'team2'
+                              ? DEPARTMENT_COLORS[
+                                  matchDetails?.team2?.department?.acronym
+                                ]
+                              : 'transparent',
+                        }}
+                      >
+                        {matchDetails?.team2?.department?.acronym ||
+                          matchDetails?.team2?.name?.toUpperCase()}
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <TabsContent
+                    value='team1'
+                    className='flex-1 overflow-auto p-0'
+                  >
+                    <PlayerStatsTable
+                      fields={fields}
+                      teamId={matchDetails?.team1?.id}
+                      statCols={statCols}
+                      form={form}
+                      isLoading={isLoading}
+                    />
+                  </TabsContent>
+                  <TabsContent
+                    value='team2'
+                    className='flex-1 overflow-auto p-0'
+                  >
+                    <PlayerStatsTable
+                      fields={fields}
+                      teamId={matchDetails?.team2?.id}
+                      statCols={statCols}
+                      form={form}
+                      isLoading={isLoading}
+                    />
+                  </TabsContent>
+                </Tabs>
               </div>
-            </div>
 
-            {/* Tabs & Table Section */}
-            <div className='flex-1 overflow-hidden'>
-              <Tabs
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className='flex h-full flex-col'
-              >
-                <div className='border-b px-6'>
-                  <TabsList className='bg-transparent p-0'>
-                    <TabsTrigger
-                      value='team1'
-                      className='rounded-none border-b-2 border-transparent px-6 py-3 font-semibold data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary'
-                    >
-                      {matchDetails?.team1?.name?.toUpperCase()}
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value='team2'
-                      className='rounded-none border-b-2 border-transparent px-6 py-3 font-semibold data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary'
-                    >
-                      {matchDetails?.team2?.name?.toUpperCase()}
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-
-                <TabsContent value='team1' className='flex-1 overflow-auto p-0'>
-                  <PlayerStatsTable
-                    fields={fields}
-                    teamId={matchDetails?.team1?.id}
-                    statCols={statCols}
-                    form={form}
-                    isLoading={isLoading}
-                  />
-                </TabsContent>
-                <TabsContent value='team2' className='flex-1 overflow-auto p-0'>
-                  <PlayerStatsTable
-                    fields={fields}
-                    teamId={matchDetails?.team2?.id}
-                    statCols={statCols}
-                    form={form}
-                    isLoading={isLoading}
-                  />
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            <DialogFooter className='flex-shrink-0 border-t bg-card p-6'>
-              <Button
-                type='button'
-                variant='outline'
-                onClick={onClose}
-                disabled={isLoading}
-              >
-                Cancel
-              </Button>
-              <Button type='submit' disabled={isLoading}>
-                {isLoading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
-                Save Match Result
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+              <DialogFooter className='flex-shrink-0 border-t bg-card p-6'>
+                <Button
+                  type='button'
+                  variant='outline'
+                  onClick={onClose}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+                <Button type='submit' disabled={isLoading}>
+                  {isLoading && (
+                    <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                  )}
+                  Save Match Result
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -441,14 +599,25 @@ const PlayerStatsTable = ({ fields, teamId, statCols, form, isLoading }) => {
           Player Name
         </div>
         <div className='flex gap-2 pl-4'>
-          {statCols.map((col) => (
-            <div
-              key={col.key}
-              className='w-16 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground'
-            >
-              {col.label}
-            </div>
-          ))}
+          <TooltipProvider delayDuration={0}>
+            {statCols.map((col) => (
+              <div
+                key={col.key}
+                className='w-16 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground'
+              >
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className='cursor-help border-b border-dotted border-muted-foreground/50'>
+                      {col.label}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className='bg-slate-800 text-white'>
+                    <p>{col.description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            ))}
+          </TooltipProvider>
         </div>
       </div>
 
