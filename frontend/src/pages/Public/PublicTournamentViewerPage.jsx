@@ -236,7 +236,7 @@ const MatchCard = ({ match }) => {
     <div className='rounded-lg border border-border bg-card p-4'>
       <div className='mb-2 flex items-center justify-between'>
         <span className='text-sm text-muted-foreground'>
-          {match.round_name || 'Match'}
+          Game {match.game_number} • {match.round_name || 'Match'}
         </span>
         <span
           className={cn(

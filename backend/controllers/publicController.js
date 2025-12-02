@@ -54,10 +54,15 @@ export const getPublicTournamentDetails = async (req, res, next) => {
 
     if (matchesError) return next(matchesError);
 
+    const matchesWithGameNumbers = matches.map((match, index) => ({
+      ...match,
+      game_number: index + 1,
+    }));
+
     res.status(200).json({
       tournament,
       teams,
-      matches,
+      matches: matchesWithGameNumbers,
     });
   } catch (error) {
     next(error);

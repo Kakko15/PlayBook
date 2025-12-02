@@ -9,6 +9,20 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } },
 };
 
+const DEPARTMENT_COLORS = {
+  CBAPA: '080e88',
+  CCJE: '7d0608',
+  CA: '174008',
+  CED: '217580',
+  COE: '4c0204',
+  CCSICT: 'fda003',
+  CON: 'd60685',
+  SVM: '464646',
+  CAS: 'dac607',
+  IOF: '018d99',
+  COM: '2c9103',
+};
+
 const formatMatchTime = (dateString) => {
   if (!dateString) return 'Time TBD';
   const date = new Date(dateString);
@@ -29,23 +43,44 @@ const formatMatchTime = (dateString) => {
   return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })} @ ${time}`;
 };
 
-const TeamDisplay = ({ team }) => (
-  <div className='flex items-center gap-2'>
-    <img
-      src={
-        team?.logo_url || `https://avatar.vercel.sh/${team?.name || 'TBD'}.png`
-      }
-      alt={`${team?.name || 'TBD'} logo`}
-      className='h-6 w-6 rounded-full bg-muted'
-      onError={(e) => {
-        e.currentTarget.src = `https://avatar.vercel.sh/${team?.name || 'TBD'}.png`;
-      }}
-    />
-    <span className='truncate text-xl font-bold text-on-surface'>
-      {team?.name || 'TBD'}
-    </span>
-  </div>
-);
+const TeamDisplay = ({ team, align = 'left' }) => {
+  const acronym =
+    team?.department?.acronym ||
+    team?.name?.substring(0, 2).toUpperCase() ||
+    'NA';
+  const color = DEPARTMENT_COLORS[acronym] || '64748b';
+  const logoSrc =
+    team?.logo_url ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(acronym)}&background=${color}&color=fff&size=128&bold=true&length=4`;
+
+  return (
+    <div
+      className={cn(
+        'flex min-w-0 flex-1 items-center gap-3',
+        align === 'right' ? 'flex-row-reverse text-right' : 'text-left'
+      )}
+    >
+      <img
+        src={logoSrc}
+        alt={`${team?.name || 'TBD'} logo`}
+        className='h-10 w-10 flex-shrink-0 rounded-full bg-muted object-cover shadow-sm'
+        onError={(e) => {
+          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(acronym)}&background=random&color=fff`;
+        }}
+      />
+      <div className='flex min-w-0 flex-col'>
+        <span className='truncate text-lg font-bold text-on-surface sm:text-xl'>
+          {acronym}
+        </span>
+        {team?.name && (
+          <span className='truncate text-xs font-medium text-on-surface-variant/70'>
+            {team.name}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const UpNextCard = ({ nextMatch, tournamentName, onLogResult }) => {
   if (!nextMatch) {
@@ -82,12 +117,12 @@ const UpNextCard = ({ nextMatch, tournamentName, onLogResult }) => {
             </span>
           </div>
 
-          <div className='flex items-center justify-center gap-4'>
+          <div className='flex items-center justify-between gap-4'>
             <TeamDisplay team={nextMatch.team1} />
-            <span className='text-lg font-medium text-on-surface-variant'>
+            <span className='shrink-0 text-sm font-medium uppercase text-on-surface-variant/50'>
               vs
             </span>
-            <TeamDisplay team={nextMatch.team2} />
+            <TeamDisplay team={nextMatch.team2} align='right' />
           </div>
 
           <div className='mt-6 flex items-center justify-between'>

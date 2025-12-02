@@ -677,11 +677,16 @@ export const getSchedule = async (req, res, next) => {
         "*, team1:teams!matches_team1_id_fkey(*, department:departments(acronym)), team2:teams!matches_team2_id_fkey(*, department:departments(acronym))"
       )
       .eq("tournament_id", tournament_id)
-      .order("round_name", { ascending: true, nullsFirst: true })
       .order("match_date", { ascending: true, nullsFirst: true });
 
     if (error) return next(error);
-    res.status(200).json(data);
+
+    const matchesWithGameNumbers = data.map((match, index) => ({
+      ...match,
+      game_number: index + 1,
+    }));
+
+    res.status(200).json(matchesWithGameNumbers);
   } catch (error) {
     next(error);
   }

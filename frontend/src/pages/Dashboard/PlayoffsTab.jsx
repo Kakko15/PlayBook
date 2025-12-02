@@ -110,7 +110,7 @@ const PlayoffsTab = ({ tournamentId, game }) => {
             >
               <div className='flex items-center justify-between'>
                 <span className='text-xs font-bold uppercase tracking-wider text-muted-foreground'>
-                  {match.round_name}
+                  Game {match.game_number} • {match.round_name}
                 </span>
                 <Button
                   variant='ghost'

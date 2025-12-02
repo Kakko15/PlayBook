@@ -272,7 +272,7 @@ const MatchCard = ({ match, onLogResult, onFinalize, isFinalizing }) => {
     <div className='rounded-lg border border-border bg-card p-4 transition-all hover:shadow-sm'>
       <div className='mb-4 flex items-center justify-between'>
         <span className='text-sm font-medium uppercase tracking-wider text-muted-foreground'>
-          {match.round_name || 'Match'}
+          Game {match.game_number} • {match.round_name || 'Match'}
         </span>
         <div className='flex items-center gap-2'>
           {isFinalized && (
