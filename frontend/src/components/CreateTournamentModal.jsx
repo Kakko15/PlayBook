@@ -38,8 +38,8 @@ const formSchema = z.object({
   game: z.enum(['basketball', 'valorant', 'mlbb'], {
     required_error: 'Please select a game.',
   }),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
+  start_date: z.string().min(1, { message: 'Start date is required.' }),
+  end_date: z.string().min(1, { message: 'End date is required.' }),
 });
 
 const gameOptions = {
@@ -99,8 +99,8 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess, tournament }) => {
         const payload = {
           ...values,
           game: 'basketball',
-          startDate: values.start_date || null,
-          endDate: values.end_date || null,
+          startDate: values.start_date,
+          endDate: values.end_date,
         };
         await api.updateTournament(tournament.id, payload);
         toast.success('Tournament updated successfully!');
@@ -108,8 +108,8 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess, tournament }) => {
         const payload = {
           ...values,
           game: 'basketball',
-          start_date: values.start_date || null,
-          end_date: values.end_date || null,
+          start_date: values.start_date,
+          end_date: values.end_date,
         };
         await api.createTournament(payload);
         toast.success('Tournament created successfully!');
@@ -133,7 +133,10 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess, tournament }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className='sm:max-w-[425px]'>
+      <DialogContent
+        className='sm:max-w-[425px]'
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>
             {isEditMode ? 'Edit Tournament' : 'Create New Tournament'}
@@ -217,7 +220,7 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess, tournament }) => {
                 name='start_date'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Start Date (Optional)</FormLabel>
+                    <FormLabel>Start Date</FormLabel>
                     <FormControl>
                       <Input type='date' disabled={isLoading} {...field} />
                     </FormControl>
@@ -230,7 +233,7 @@ const CreateTournamentModal = ({ isOpen, onClose, onSuccess, tournament }) => {
                 name='end_date'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>End Date (Optional)</FormLabel>
+                    <FormLabel>End Date</FormLabel>
                     <FormControl>
                       <Input type='date' disabled={isLoading} {...field} />
                     </FormControl>

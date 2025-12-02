@@ -23,6 +23,13 @@ import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const getStatSchema = (game) => {
   switch (game) {
@@ -281,11 +288,32 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
                     <FormItem>
                       <FormLabel>Venue</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder='Gym'
-                          disabled={isLoading}
-                          {...field}
-                        />
+                        {(game || '').toLowerCase() === 'basketball' ? (
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            value={field.value || undefined}
+                            disabled={isLoading}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder='Select venue' />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value='Open Gym'>Open Gym</SelectItem>
+                              <SelectItem value='Close Gym'>
+                                Close Gym
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Input
+                            placeholder='Gym'
+                            disabled={isLoading}
+                            {...field}
+                          />
+                        )}
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -64,6 +64,12 @@ const ScheduleTab = ({ tournamentId, game }) => {
         const rankA = getRoundRank(a.round_name);
         const rankB = getRoundRank(b.round_name);
         if (rankA !== rankB) return rankA - rankB;
+
+        // Sort by date
+        const dateA = new Date(a.match_date || 0);
+        const dateB = new Date(b.match_date || 0);
+        if (dateA - dateB !== 0) return dateA - dateB;
+
         return a.id.localeCompare(b.id);
       });
       setMatches(sortedData);
@@ -137,6 +143,14 @@ const ScheduleTab = ({ tournamentId, game }) => {
     fetchSchedule();
   };
 
+  // Group matches by round
+  const matchesByRound = matches.reduce((acc, match) => {
+    const round = match.round_name || 'Unscheduled';
+    if (!acc[round]) acc[round] = [];
+    acc[round].push(match);
+    return acc;
+  }, {});
+
   if (isLoading) {
     return (
       <div className='flex h-64 w-full items-center justify-center'>
@@ -189,15 +203,28 @@ const ScheduleTab = ({ tournamentId, game }) => {
         </Button>
       </div>
 
-      <div className='space-y-4'>
-        {matches.map((match) => (
-          <MatchCard
-            key={match.id}
-            match={match}
-            onLogResult={handleLogResultClick}
-            onFinalize={handleFinalizeMatch}
-            isFinalizing={isFinalizing === match.id}
-          />
+      <div className='space-y-8'>
+        {Object.entries(matchesByRound).map(([roundName, roundMatches]) => (
+          <div key={roundName} className='space-y-4'>
+            <div className='flex items-center gap-2'>
+              <div className='flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary'>
+                <Icon name='emoji_events' className='h-4 w-4' />
+              </div>
+              <h3 className='text-lg font-bold text-foreground'>{roundName}</h3>
+              <div className='h-px flex-1 bg-border'></div>
+            </div>
+            <div className='grid gap-4'>
+              {roundMatches.map((match) => (
+                <MatchCard
+                  key={match.id}
+                  match={match}
+                  onLogResult={handleLogResultClick}
+                  onFinalize={handleFinalizeMatch}
+                  isFinalizing={isFinalizing === match.id}
+                />
+              ))}
+            </div>
+          </div>
         ))}
       </div>
 

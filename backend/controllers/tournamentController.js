@@ -6,8 +6,10 @@ export const createTournament = async (req, res, next) => {
   const { name, game, start_date, end_date } = req.body;
   const ownerId = req.user.userId;
 
-  if (!name || !game) {
-    return res.status(400).json({ message: "Name and game are required." });
+  if (!name || !game || !start_date || !end_date) {
+    return res
+      .status(400)
+      .json({ message: "Name, game, start date, and end date are required." });
   }
 
   try {
@@ -17,8 +19,8 @@ export const createTournament = async (req, res, next) => {
         name: sanitize(name),
         game: sanitize(game),
         owner_id: ownerId,
-        start_date: start_date || null,
-        end_date: end_date || null,
+        start_date: start_date,
+        end_date: end_date,
       })
       .select()
       .single();
@@ -460,6 +462,14 @@ export const generateSchedule = async (req, res, next) => {
   const { userId } = req.user;
 
   try {
+    const { data: tournament, error: tournamentError } = await supabase
+      .from("tournaments")
+      .select("start_date, end_date")
+      .eq("id", tournament_id)
+      .single();
+
+    if (tournamentError) return next(tournamentError);
+
     const { data: teams, error: teamsError } = await supabase
       .from("teams")
       .select("id")
@@ -523,13 +533,86 @@ export const generateSchedule = async (req, res, next) => {
       return `Round ${r}`;
     };
 
-    const matchesToInsert = matchNodes.map((node) => ({
-      tournament_id,
-      round_name: getRoundName(node.round, totalRounds),
-      status: "pending",
-      team1_id: node.source1.type === "team" ? node.source1.id : null,
-      team2_id: node.source2.type === "team" ? node.source2.id : null,
-    }));
+    // Group matches by round
+    const matchesByRound = {};
+    matchNodes.forEach((node) => {
+      if (!matchesByRound[node.round]) {
+        matchesByRound[node.round] = [];
+      }
+      matchesByRound[node.round].push(node);
+    });
+
+    const matchesToInsert = [];
+
+    const startDate = new Date(tournament.start_date);
+    const endDate = new Date(tournament.end_date);
+    // Calculate total duration in days (inclusive)
+    const totalDurationMs = endDate - startDate;
+    const totalDurationDays = Math.max(
+      1,
+      Math.ceil(totalDurationMs / (1000 * 60 * 60 * 24)) + 1
+    );
+
+    // Calculate days allocated per round to spread them out
+    const daysPerRound = Math.floor(totalDurationDays / totalRounds);
+
+    let currentScheduleDate = new Date(startDate);
+    currentScheduleDate.setHours(9, 0, 0, 0); // Start at 9:00 AM
+
+    const GAME_DURATION_MINUTES = 90;
+    const LAST_GAME_START_HOUR = 17; // 5:00 PM
+
+    for (let r = 1; r <= totalRounds; r++) {
+      const roundMatches = matchesByRound[r] || [];
+
+      // Calculate the target start date for this round based on the spread
+      const targetRoundStartDate = new Date(startDate);
+      targetRoundStartDate.setDate(
+        startDate.getDate() + (r - 1) * daysPerRound
+      );
+      targetRoundStartDate.setHours(9, 0, 0, 0);
+
+      // If the current scheduling cursor is behind the target start date (meaning previous round finished early),
+      // jump ahead to the target date to spread out the schedule.
+      if (currentScheduleDate < targetRoundStartDate) {
+        currentScheduleDate = targetRoundStartDate;
+      }
+
+      // Ensure we always start a new round at 9 AM if we jumped days or if we are on the same day but want to reset (optional, but cleaner)
+      // Actually, if we just finished a round at 2 PM and the target date is today, we might want to continue?
+      // No, usually rounds are distinct. Let's force a new day start if we are jumping,
+      // but if we are "late" (current > target), we just continue from next available slot.
+      // The logic `currentScheduleDate = targetRoundStartDate` handles the jump and sets it to 9 AM.
+
+      // If we didn't jump (because we are running late), we should still try to start fresh at 9 AM of the next day
+      // if the previous round ended late in the day.
+      if (currentScheduleDate.getHours() >= LAST_GAME_START_HOUR) {
+        currentScheduleDate.setDate(currentScheduleDate.getDate() + 1);
+        currentScheduleDate.setHours(9, 0, 0, 0);
+      }
+
+      for (const node of roundMatches) {
+        matchesToInsert.push({
+          tournament_id,
+          round_name: getRoundName(node.round, totalRounds),
+          status: "pending",
+          team1_id: node.source1.type === "team" ? node.source1.id : null,
+          team2_id: node.source2.type === "team" ? node.source2.id : null,
+          match_date: currentScheduleDate.toISOString(),
+        });
+
+        // Advance time
+        currentScheduleDate.setMinutes(
+          currentScheduleDate.getMinutes() + GAME_DURATION_MINUTES
+        );
+
+        // Check if we need to wrap to next day
+        if (currentScheduleDate.getHours() >= LAST_GAME_START_HOUR) {
+          currentScheduleDate.setDate(currentScheduleDate.getDate() + 1);
+          currentScheduleDate.setHours(9, 0, 0, 0);
+        }
+      }
+    }
 
     const { data: insertedMatches, error: insertError } = await supabase
       .from("matches")
