@@ -729,7 +729,7 @@ export const getMatchDetails = async (req, res, next) => {
     const { data: match, error: matchError } = await supabase
       .from("matches")
       .select(
-        "*, team1:teams!matches_team1_id_fkey(*, players(*)), team2:teams!matches_team2_id_fkey(*, players(*))"
+        "*, team1:teams!matches_team1_id_fkey(*, players(*)), team2:teams!matches_team2_id_fkey(*, players(*)), match_player_stats(*)"
       )
       .eq("id", match_id)
       .single();

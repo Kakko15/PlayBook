@@ -103,23 +103,58 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
     name: 'player_stats',
   });
 
+  // Watch all player stats to calculate team totals
+  const playerStats = useWatch({
+    control: form.control,
+    name: 'player_stats',
+  });
+
+  useEffect(() => {
+    if (!playerStats || !matchDetails) return;
+
+    const calculateTeamScore = (teamId) => {
+      return playerStats
+        .filter((p) => p.team_id === teamId)
+        .reduce((sum, p) => sum + (Number(p.stats?.pts) || 0), 0);
+    };
+
+    const t1Score = calculateTeamScore(matchDetails.team1.id);
+    const t2Score = calculateTeamScore(matchDetails.team2.id);
+
+    // Only update if different to avoid infinite loops (though setValue shouldn't trigger this if value is same)
+    if (t1Score !== form.getValues('team1_score')) {
+      form.setValue('team1_score', t1Score);
+    }
+    if (t2Score !== form.getValues('team2_score')) {
+      form.setValue('team2_score', t2Score);
+    }
+  }, [playerStats, matchDetails, form]);
+
   useEffect(() => {
     const fetchDetails = async () => {
       try {
         const data = await api.getMatchDetails(match.id);
         setMatchDetails(data);
 
+        // Map existing stats if available
+        const statsMap = {};
+        if (data.match_player_stats) {
+          data.match_player_stats.forEach((stat) => {
+            statsMap[stat.player_id] = stat;
+          });
+        }
+
         const team1Players = data.team1.players.map((p) => ({
           player_id: p.id,
           team_id: data.team1.id,
           name: p.name,
-          stats: {},
+          stats: statsMap[p.id] || {},
         }));
         const team2Players = data.team2.players.map((p) => ({
           player_id: p.id,
           team_id: data.team2.id,
           name: p.name,
-          stats: {},
+          stats: statsMap[p.id] || {},
         }));
 
         form.reset({
@@ -229,7 +264,7 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
                           <Input
                             type='number'
                             className='h-16 w-24 text-center text-4xl font-bold'
-                            disabled={isLoading}
+                            disabled
                             {...field}
                           />
                         </FormControl>
@@ -248,7 +283,7 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
                           <Input
                             type='number'
                             className='h-16 w-24 text-center text-4xl font-bold'
-                            disabled={isLoading}
+                            disabled
                             {...field}
                           />
                         </FormControl>
