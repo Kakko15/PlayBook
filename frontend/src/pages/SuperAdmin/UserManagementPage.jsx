@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { UserCheck, UserX, Loader2 } from 'lucide-react';
+import { UserCheck, UserX, Loader2, Check } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdownMenu';
 import Icon from '@/components/Icon';
 import { cn } from '@/lib/utils';
@@ -130,14 +133,15 @@ const UserManagementPage = () => {
     }
   };
 
-  const handleToggleRole = async (userId, currentRole) => {
-    const newRole = currentRole === 'admin' ? 'super_admin' : 'admin';
+  const handleRoleChange = async (userId, newRole) => {
     setActionLoading(userId);
     try {
       await api.updateUserRole(userId, newRole);
-      toast.success(
-        `User role updated to ${newRole === 'super_admin' ? 'Super Admin' : 'Admin'}`
-      );
+      const roleName = newRole
+        .split('_')
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      toast.success(`User role updated to ${roleName}`);
       fetchUsers();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update role');
@@ -350,10 +354,16 @@ const UserManagementPage = () => {
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           user.role === 'super_admin'
                             ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                            : 'bg-secondary-container text-on-secondary-container'
+                            : user.role === 'scorer'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                              : 'bg-secondary-container text-on-secondary-container'
                         }`}
                       >
-                        {user.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                        {user.role === 'super_admin'
+                          ? 'Super Admin'
+                          : user.role === 'scorer'
+                            ? 'Scorer'
+                            : 'Admin'}
                       </span>
                     </td>
                     <td className='px-4 py-3'>
@@ -396,19 +406,47 @@ const UserManagementPage = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align='end'>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleToggleRole(user.id, user.role)
-                              }
-                            >
-                              <Icon
-                                name='military_tech'
-                                className='mr-2 text-lg'
-                              />
-                              {user.role === 'admin'
-                                ? 'Make Super Admin'
-                                : 'Make Admin'}
-                            </DropdownMenuItem>
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>
+                                <Icon
+                                  name='military_tech'
+                                  className='mr-2 text-lg'
+                                />
+                                Change Role
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleRoleChange(user.id, 'admin')
+                                  }
+                                >
+                                  Admin
+                                  {user.role === 'admin' && (
+                                    <Check className='ml-auto h-4 w-4' />
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleRoleChange(user.id, 'super_admin')
+                                  }
+                                >
+                                  Super Admin
+                                  {user.role === 'super_admin' && (
+                                    <Check className='ml-auto h-4 w-4' />
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() =>
+                                    handleRoleChange(user.id, 'scorer')
+                                  }
+                                >
+                                  Scorer
+                                  {user.role === 'scorer' && (
+                                    <Check className='ml-auto h-4 w-4' />
+                                  )}
+                                </DropdownMenuItem>
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
                             <DropdownMenuItem
                               onClick={() =>
                                 handleToggleStatus(user.id, user.status)
