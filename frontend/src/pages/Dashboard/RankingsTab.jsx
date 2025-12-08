@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import SortableTable from '@/components/ui/SortableTable';
 
 const getInitials = (name = '') => {
@@ -41,6 +42,105 @@ const RankingsTab = ({ tournamentId }) => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const exportPlayersToCSV = () => {
+    if (playerRankings.length === 0) {
+      toast.error('No player data to export.');
+      return;
+    }
+
+    // Define CSV headers
+    const headers = [
+      'Rank',
+      'Player Name',
+      'Team',
+      'ISU-PS',
+      'Offensive Rating',
+      'Defensive Rating',
+      'Games Played',
+      'Sportsmanship',
+    ];
+
+    // Sort by ISU-PS descending and create rows
+    const sortedPlayers = [...playerRankings].sort(
+      (a, b) => b.isu_ps - a.isu_ps
+    );
+
+    const rows = sortedPlayers.map((player, index) => [
+      index + 1,
+      player.name,
+      player.team?.name || 'N/A',
+      player.isu_ps?.toFixed(2) || '0.00',
+      player.offensive_rating?.toFixed(2) || '0.00',
+      player.defensive_rating?.toFixed(2) || '0.00',
+      player.game_count || 0,
+      player.avg_sportsmanship?.toFixed(2) || '5.00',
+    ]);
+
+    // Convert to CSV string
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ),
+    ].join('\n');
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute(
+      'download',
+      `player_rankings_${tournamentId}_${new Date().toISOString().split('T')[0]}.csv`
+    );
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success('Player rankings exported successfully!');
+  };
+
+  const exportDepartmentsToCSV = () => {
+    if (departmentRankings.length === 0) {
+      toast.error('No department data to export.');
+      return;
+    }
+
+    const headers = ['Rank', 'Department', 'Acronym', 'ELO Rating'];
+
+    const rows = departmentRankings.map((dept, index) => [
+      index + 1,
+      dept.name,
+      dept.acronym,
+      dept.elo_rating,
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute(
+      'download',
+      `department_rankings_${new Date().toISOString().split('T')[0]}.csv`
+    );
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success('Department rankings exported successfully!');
+  };
 
   if (isLoading) {
     return (
@@ -128,8 +228,17 @@ const RankingsTab = ({ tournamentId }) => {
   return (
     <div className='grid grid-cols-1 gap-8 lg:grid-cols-2'>
       <Card>
-        <CardHeader>
+        <CardHeader className='flex flex-row items-center justify-between'>
           <CardTitle>Player Rankings (ISU-PS)</CardTitle>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={exportPlayersToCSV}
+            disabled={playerRankings.length === 0}
+          >
+            <Download className='mr-2 h-4 w-4' />
+            Export CSV
+          </Button>
         </CardHeader>
         <CardContent>
           <SortableTable
@@ -143,8 +252,17 @@ const RankingsTab = ({ tournamentId }) => {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className='flex flex-row items-center justify-between'>
           <CardTitle>Department Rankings (ELO)</CardTitle>
+          <Button
+            variant='outline'
+            size='sm'
+            onClick={exportDepartmentsToCSV}
+            disabled={departmentRankings.length === 0}
+          >
+            <Download className='mr-2 h-4 w-4' />
+            Export CSV
+          </Button>
         </CardHeader>
         <CardContent>
           <SortableTable

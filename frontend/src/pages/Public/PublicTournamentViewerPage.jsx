@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import GameIcon from '@/components/GameIcon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,6 +28,22 @@ const PublicTournamentViewerPage = () => {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [isSimilarPlayersOpen, setIsSimilarPlayersOpen] = useState(false);
   const { user } = useAuth();
+
+  // Remember last selected tab per tournament
+  const [activeTab, setActiveTab] = useState(
+    () => localStorage.getItem(`public-tournament-tab-${id}`) || 'standings'
+  );
+
+  const handleTabChange = (value) => {
+    setActiveTab(value);
+    localStorage.setItem(`public-tournament-tab-${id}`, value);
+  };
+
+  // Reset tab when tournament id changes
+  useEffect(() => {
+    const savedTab = localStorage.getItem(`public-tournament-tab-${id}`);
+    setActiveTab(savedTab || 'standings');
+  }, [id]);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -89,7 +105,7 @@ const PublicTournamentViewerPage = () => {
       </header>
 
       <main className='flex-1 p-4 md:p-8'>
-        <Tabs defaultValue='standings' className='w-full'>
+        <Tabs value={activeTab} onValueChange={handleTabChange} className='w-full'>
           <TabsList className='grid w-full grid-cols-1 sm:grid-cols-5'>
             <TabsTrigger value='standings'>
               <Icon name='leaderboard' className='mr-0 h-4 w-4 sm:mr-2' />
@@ -235,9 +251,17 @@ const MatchCard = ({ match }) => {
   return (
     <div className='rounded-lg border border-border bg-card p-4'>
       <div className='mb-2 flex items-center justify-between'>
-        <span className='text-sm text-muted-foreground'>
-          Game {match.game_number} • {match.round_name || 'Match'}
-        </span>
+        <div className='flex flex-col gap-0.5'>
+          <span className='text-sm text-muted-foreground'>
+            Game {match.game_number} • {match.round_name || 'Match'}
+          </span>
+          {match.venue && (
+            <span className='flex items-center gap-1 text-xs text-muted-foreground/70'>
+              <MapPin className='h-3 w-3' />
+              {match.venue}
+            </span>
+          )}
+        </div>
         <span
           className={cn(
             'rounded-full px-2.5 py-0.5 text-xs font-medium',

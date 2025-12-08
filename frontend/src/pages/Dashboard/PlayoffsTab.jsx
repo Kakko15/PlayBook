@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Loader2, RefreshCw, Edit } from 'lucide-react';
+import { Loader2, RefreshCw, Edit, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LogMatchModal from '@/components/LogMatchModal';
 import Icon from '@/components/Icon';
@@ -109,9 +109,17 @@ const PlayoffsTab = ({ tournamentId, game }) => {
               )}
             >
               <div className='flex items-center justify-between'>
-                <span className='text-xs font-bold uppercase tracking-wider text-muted-foreground'>
-                  Game {match.game_number} • {match.round_name}
-                </span>
+                <div className='flex flex-col gap-0.5'>
+                  <span className='text-xs font-bold uppercase tracking-wider text-muted-foreground'>
+                    Game {match.game_number} • {match.round_name}
+                  </span>
+                  {match.venue && (
+                    <span className='flex items-center gap-1 text-[10px] text-muted-foreground/70'>
+                      <MapPin className='h-3 w-3' />
+                      {match.venue}
+                    </span>
+                  )}
+                </div>
                 <Button
                   variant='ghost'
                   size='icon'

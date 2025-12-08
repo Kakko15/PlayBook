@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trophy } from 'lucide-react';
 import SortableTable from '@/components/ui/SortableTable';
+import confetti from 'canvas-confetti';
 
 const DEPARTMENT_COLORS = {
   CBAPA: '080e88',
@@ -21,21 +22,95 @@ const DEPARTMENT_COLORS = {
 const StandingsTab = ({ tournamentId }) => {
   const [standings, setStandings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasShownConfetti, setHasShownConfetti] = useState(false);
+  const confettiTriggeredRef = useRef(false);
+  const confettiTimeoutRef = useRef(null);
+  const confettiIntervalRef = useRef(null);
+
+  const triggerWinnerConfetti = useCallback(() => {
+    if (confettiTriggeredRef.current) return;
+    confettiTriggeredRef.current = true;
+
+    // Fire confetti from both sides
+    const duration = 3000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+
+    const randomInRange = (min, max) => Math.random() * (max - min) + min;
+
+    confettiIntervalRef.current = setInterval(() => {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        clearInterval(confettiIntervalRef.current);
+        confettiIntervalRef.current = null;
+        return;
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+
+      // Confetti from left
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+        colors: ['#22c55e', '#16a34a', '#fbbf24', '#f59e0b'],
+      });
+
+      // Confetti from right
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+        colors: ['#22c55e', '#16a34a', '#fbbf24', '#f59e0b'],
+      });
+    }, 250);
+
+    setHasShownConfetti(true);
+  }, []);
 
   const fetchStandings = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await api.getStandings(tournamentId);
       setStandings(data);
+
+      // Check if tournament has a clear winner (rank 1 has wins and rank 2 has losses)
+      if (data.length >= 2) {
+        const leader = data[0];
+        const runnerUp = data[1];
+        const tournamentComplete = leader.wins > 0 && runnerUp.losses > 0;
+        const clearWinner = leader.wins > runnerUp.wins;
+
+        // Trigger confetti if there's a clear winner
+        if (tournamentComplete && clearWinner && !confettiTriggeredRef.current) {
+          // Small delay for visual effect
+          confettiTimeoutRef.current = setTimeout(() => triggerWinnerConfetti(), 500);
+        }
+      }
     } catch (error) {
       toast.error('Failed to fetch standings.');
     } finally {
       setIsLoading(false);
     }
-  }, [tournamentId]);
+  }, [tournamentId, triggerWinnerConfetti]);
 
   useEffect(() => {
+    confettiTriggeredRef.current = false;
+    setHasShownConfetti(false);
     fetchStandings();
+
+    // Cleanup timeouts and intervals on unmount or tournamentId change
+    return () => {
+      if (confettiTimeoutRef.current) {
+        clearTimeout(confettiTimeoutRef.current);
+        confettiTimeoutRef.current = null;
+      }
+      if (confettiIntervalRef.current) {
+        clearInterval(confettiIntervalRef.current);
+        confettiIntervalRef.current = null;
+      }
+    };
   }, [fetchStandings]);
 
   if (isLoading) {
@@ -52,7 +127,12 @@ const StandingsTab = ({ tournamentId }) => {
       header: 'Rank',
       sortable: true,
       renderCell: (row, value, index) => (
-        <span className='font-medium text-foreground'>{index + 1}</span>
+        <div className='flex items-center gap-2'>
+          <span className='font-medium text-foreground'>{index + 1}</span>
+          {index === 0 && row.wins > 0 && (
+            <Trophy className='h-4 w-4 text-yellow-500' />
+          )}
+        </div>
       ),
     },
     {
