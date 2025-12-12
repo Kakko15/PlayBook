@@ -4,21 +4,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import {
-  Loader2,
-  ChevronLeft,
-  X,
   Calendar,
-  Trophy,
-  BarChart3,
-  Users,
-  Ticket,
-  PlayCircle,
-  ChevronDown,
-  Search,
+  ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Trophy,
+  Users,
+  Search,
+  ArrowBigRight,
+  Share2,
+  Ticket,
+  BarChart3,
+  TrendingUp,
   Clock,
   MapPin,
-  TrendingUp,
+  Loader2,
+  ArrowLeft,
+  X,
 } from 'lucide-react';
 import {
   Tooltip,
@@ -29,10 +31,11 @@ import {
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/Icon';
 import { useAuth } from '@/hooks/useAuth';
-import PickemsTab from '@/pages/Dashboard/PickemsTab';
+// Imports removed to fix duplicate declaration errors
 import { getGameDetails } from '@/lib/tournamentUtils.jsx';
 import { cn } from '@/lib/utils';
 import SimilarPlayersModal from '@/components/SimilarPlayersModal';
+import MatchDetailsFullPage from '@/components/MatchDetailsModal'; // Component is exported as default from this file
 
 // --- Constants & Utils ---
 
@@ -105,6 +108,7 @@ const PublicTournamentViewerPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [isSimilarPlayersOpen, setIsSimilarPlayersOpen] = useState(false);
+  const [selectedMatchId, setSelectedMatchId] = useState(null);
   const { user } = useAuth();
 
   const [activeTab, setActiveTab] = useState(
@@ -143,6 +147,10 @@ const PublicTournamentViewerPage = () => {
     setIsSimilarPlayersOpen(true);
   };
 
+  const handleMatchClick = (match) => {
+    setSelectedMatchId(match.id);
+  };
+
   if (isLoading) {
     return (
       <div className='flex h-screen w-full flex-col items-center justify-center bg-gray-50'>
@@ -176,117 +184,75 @@ const PublicTournamentViewerPage = () => {
 
   const { tournament, teams, matches } = details;
 
-  const tabs = [
-    { id: 'games', label: 'Matches', icon: Calendar },
-    { id: 'standings', label: 'Standings', icon: Trophy },
-    { id: 'stats', label: 'Stats', icon: BarChart3 },
-    { id: 'players', label: 'Teams', icon: Users },
-    { id: 'pickems', label: "Pick'ems", icon: Ticket },
-  ];
+  if (selectedMatchId) {
+    return (
+      <div className='fixed inset-0 z-[100] bg-white'>
+        <MatchDetailsFullPage
+          matchId={selectedMatchId}
+          onBack={() => setSelectedMatchId(null)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className='flex min-h-screen flex-col bg-[#f0f2f5] font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-900'>
       {/* --- Sticky Header --- */}
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className='sticky top-0 z-50 border-b border-white/20 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60'
-      >
-        <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
-          <div className='flex h-20 items-center justify-between'>
-            <div className='flex items-center gap-5'>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => navigate('/tournaments')}
-                      className='flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900'
-                    >
-                      <ChevronLeft className='h-5 w-5' />
-                    </motion.button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Back to Tournaments</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <h1 className='bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-xl font-extrabold tracking-tight text-transparent sm:text-2xl'>
-                  {tournament.name}
-                </h1>
-                <div className='flex items-center gap-2'>
-                  <span className='inline-block h-1.5 w-1.5 rounded-full bg-green-500'></span>
-                  <p className='text-xs font-semibold uppercase tracking-wider text-gray-500'>
-                    Season 2025
-                  </p>
-                </div>
-              </motion.div>
-            </div>
+      {/* --- Sticky Header --- */}
+      <div className='sticky top-0 z-50 flex h-14 w-full items-center justify-between bg-[#0f3c85] px-4 text-white shadow-md'>
+        <button
+          onClick={() => navigate('/tournaments')}
+          className='flex items-center gap-2 text-sm font-medium transition-opacity hover:opacity-80'
+        >
+          <ArrowLeft className='h-5 w-5' />
+          <span>{tournament.name || 'Tournament'}</span>
+        </button>
 
-            <Button
-              variant='ghost'
-              size='icon'
-              className='rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-900'
-            >
-              <Search className='h-5 w-5' />
-            </Button>
-          </div>
-
-          {/* --- Navigation Tabs --- */}
-          <div className='scrollbar-hide flex space-x-2 overflow-x-auto pb-2'>
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className='relative flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition-all focus:outline-none'
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId='pill-tab'
-                      transition={{
-                        type: 'spring',
-                        bounce: 0.2,
-                        duration: 0.6,
-                      }}
-                      className='absolute inset-0 rounded-full bg-blue-600 shadow-md shadow-blue-200'
-                    />
-                  )}
-                  <span
-                    className={cn(
-                      'relative z-10 flex items-center gap-2 transition-colors duration-200',
-                      isActive
-                        ? 'text-white'
-                        : 'text-gray-500 hover:text-gray-900'
-                    )}
-                  >
-                    <tab.icon
-                      className={cn(
-                        'h-4 w-4',
-                        isActive
-                          ? 'text-white'
-                          : 'text-gray-400 group-hover:text-gray-600'
-                      )}
-                    />
-                    {tab.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </motion.header>
+        <button
+          onClick={() => navigate('/tournaments')}
+          className='rounded-full p-1 transition-colors hover:bg-white/10'
+        >
+          <X className='h-5 w-5' />
+        </button>
+      </div>
 
       {/* --- Main Content --- */}
       <main className='mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8'>
+        {/* Tab Navigation */}
+        <div className='mb-8 flex justify-center'>
+          <div className='inline-flex rounded-full bg-white p-1.5 shadow-sm ring-1 ring-black/5'>
+            {[
+              { id: 'games', label: 'Matches', icon: Calendar },
+              { id: 'standings', label: 'Standings', icon: Trophy },
+              { id: 'stats', label: 'Stats', icon: BarChart3 },
+              { id: 'players', label: 'Players', icon: Users },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  'relative flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold transition-all duration-300',
+                  activeTab === tab.id
+                    ? 'text-white shadow-md'
+                    : 'text-gray-500 hover:text-gray-900'
+                )}
+              >
+                {activeTab === tab.id && (
+                  <motion.div
+                    layoutId='activeTab'
+                    className='absolute inset-0 rounded-full bg-gray-900'
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <span className='relative z-10 flex items-center gap-2'>
+                  <tab.icon className='h-4 w-4' />
+                  {tab.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <AnimatePresence mode='wait'>
           <motion.div
             key={activeTab}
@@ -296,14 +262,13 @@ const PublicTournamentViewerPage = () => {
             transition={{ duration: 0.3, ease: 'easeOut' }}
             className='h-full'
           >
-            {activeTab === 'games' && <ScheduleTab matches={matches} />}
+            {activeTab === 'games' && (
+              <ScheduleTab matches={matches} onMatchClick={handleMatchClick} />
+            )}
             {activeTab === 'standings' && <StandingsTab teams={teams} />}
             {activeTab === 'stats' && <StatsTab tournamentId={tournament.id} />}
             {activeTab === 'players' && (
               <TeamsTab teams={teams} onCompare={handleCompare} />
-            )}
-            {activeTab === 'pickems' && (
-              <PickemsTab tournamentId={tournament.id} />
             )}
           </motion.div>
         </AnimatePresence>
@@ -321,7 +286,7 @@ const PublicTournamentViewerPage = () => {
 
 // --- Sub-Components ---
 
-const ScheduleTab = ({ matches }) => {
+const ScheduleTab = ({ matches, onMatchClick }) => {
   const sortedMatches = [...matches].sort(
     (a, b) => new Date(a.match_date) - new Date(b.match_date)
   );
@@ -369,15 +334,18 @@ const ScheduleTab = ({ matches }) => {
             ease: [0.21, 0.47, 0.32, 0.98],
           }}
         >
-          <div className='sticky top-[150px] z-10 mb-6 flex items-center justify-center'>
-            <div className='flex items-center gap-3 rounded-full bg-white/90 px-5 py-2 text-sm font-bold uppercase tracking-wider text-gray-600 shadow-sm ring-1 ring-black/5 backdrop-blur-md'>
-              <Calendar className='h-4 w-4 text-blue-500' />
+          <div className='mb-6 flex items-center justify-start border-b border-gray-200 pb-2'>
+            <h3 className='text-lg font-bold text-gray-900'>
               {getDateLabel(groupedMatches[key].date)}
-            </div>
+            </h3>
           </div>
           <div className='grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3'>
             {groupedMatches[key].matches.map((match) => (
-              <MatchCard key={match.id} match={match} />
+              <MatchCard
+                key={match.id}
+                match={match}
+                onClick={() => onMatchClick(match)}
+              />
             ))}
           </div>
         </motion.div>
@@ -386,7 +354,7 @@ const ScheduleTab = ({ matches }) => {
   );
 };
 
-const MatchCard = ({ match }) => {
+const MatchCard = ({ match, onClick }) => {
   const isCompleted = match.status === 'completed';
   const isLive = match.status === 'live' || match.status === 'in_progress';
   const team1Win = isCompleted && match.team1_score > match.team2_score;
@@ -399,122 +367,132 @@ const MatchCard = ({ match }) => {
       })
     : 'TBD';
 
+  const matchDate = match.match_date ? new Date(match.match_date) : null;
+  let dateLabel = '';
+
+  if (matchDate) {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (matchDate.toDateString() === today.toDateString()) {
+      dateLabel = 'Today';
+    } else if (matchDate.toDateString() === tomorrow.toDateString()) {
+      dateLabel = 'Tomorrow';
+    } else {
+      dateLabel = matchDate.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+  }
+
+  // Get colors for the gradient button
+  const t1Color = DEPARTMENT_COLORS[getTeamAcronym(match.team1)] || '64748b';
+  const t2Color = DEPARTMENT_COLORS[getTeamAcronym(match.team2)] || '64748b';
+
   return (
     <motion.div
-      whileHover={{ y: -4, scale: 1.01 }}
-      className='group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-white/60 bg-white shadow-sm transition-all duration-300 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-900/5'
+      whileHover={{ y: -2 }}
+      onClick={onClick}
+      className='group relative flex cursor-pointer overflow-hidden rounded-xl border border-gray-200 bg-white transition-all duration-200 hover:shadow-md'
     >
-      {/* Decorative Live Gradient */}
-      {isLive && (
-        <div className='absolute inset-0 z-0 bg-gradient-to-r from-red-50 to-transparent opacity-50' />
-      )}
-
-      <div className='relative z-10 p-6'>
-        {/* Header: Status & Time */}
-        <div className='mb-6 flex items-center justify-between'>
-          {isLive ? (
-            <span className='flex items-center gap-2 rounded-full bg-red-100/80 px-3 py-1 text-[11px] font-bold tracking-wide text-red-600 backdrop-blur-sm'>
-              <span className='relative flex h-2 w-2'>
-                <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75'></span>
-                <span className='relative inline-flex h-2 w-2 rounded-full bg-red-600'></span>
-              </span>
-              LIVE NOW
-            </span>
-          ) : isCompleted ? (
-            <span className='rounded-full bg-gray-100 px-3 py-1 text-[11px] font-bold tracking-wide text-gray-500'>
-              FINAL
-            </span>
-          ) : (
-            <span className='flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-[11px] font-bold tracking-wide text-blue-600'>
-              <Clock className='h-3 w-3' />
-              {timeLabel}
-            </span>
-          )}
-
-          <div className='text-[10px] font-bold uppercase tracking-wider text-gray-400'>
-            {match.round || 'Regular Season'}
-          </div>
-        </div>
-
-        {/* Teams & Scores */}
-        <div className='space-y-4'>
+      <div className='flex w-full'>
+        {/* Left Side: Teams */}
+        <div className='flex flex-1 flex-col justify-center gap-4 py-4 pl-5'>
           {/* Team 1 */}
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-4'>
-              <TeamLogo team={match.team1} size='md' />
-              <div
+          <div className='flex items-center justify-between pr-4'>
+            <div className='flex items-center gap-3'>
+              <TeamLogo team={match.team1} size='sm' />
+              <span
                 className={cn(
-                  'flex flex-col',
-                  team1Win || !isCompleted ? 'opacity-100' : 'opacity-60'
+                  'text-sm font-bold text-gray-900',
+                  !team1Win && isCompleted && 'font-medium text-gray-500'
                 )}
               >
-                <span className='text-base font-bold text-gray-900'>
-                  {match.team1?.name || 'TBD'}
-                </span>
-                <span className='text-[10px] font-medium text-gray-400'>
-                  {match.team1?.department?.name || 'Team 1'}
-                </span>
-              </div>
+                {match.team1 ? getTeamAcronym(match.team1) : 'TBD'}
+              </span>
             </div>
             <span
               className={cn(
-                'font-mono text-2xl font-bold tracking-tighter',
-                team1Win ? 'text-gray-900' : 'text-gray-400',
-                isLive && 'text-red-600'
+                'font-mono text-lg font-bold',
+                isLive && 'text-red-600',
+                !team1Win && isCompleted ? 'text-gray-400' : 'text-gray-900'
               )}
             >
               {match.team1_score ?? '-'}
             </span>
           </div>
 
-          {/* Divider with VS */}
-          <div className='relative flex items-center py-1'>
-            <div className='flex-grow border-t border-gray-100'></div>
-            <span className='mx-2 text-[10px] font-bold text-gray-300'>VS</span>
-            <div className='flex-grow border-t border-gray-100'></div>
-          </div>
-
           {/* Team 2 */}
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-4'>
-              <TeamLogo team={match.team2} size='md' />
-              <div
+          <div className='flex items-center justify-between pr-4'>
+            <div className='flex items-center gap-3'>
+              <TeamLogo team={match.team2} size='sm' />
+              <span
                 className={cn(
-                  'flex flex-col',
-                  team2Win || !isCompleted ? 'opacity-100' : 'opacity-60'
+                  'text-sm font-bold text-gray-900',
+                  !team2Win && isCompleted && 'font-medium text-gray-500'
                 )}
               >
-                <span className='text-base font-bold text-gray-900'>
-                  {match.team2?.name || 'TBD'}
-                </span>
-                <span className='text-[10px] font-medium text-gray-400'>
-                  {match.team2?.department?.name || 'Team 2'}
-                </span>
-              </div>
+                {match.team2 ? getTeamAcronym(match.team2) : 'TBD'}
+              </span>
             </div>
             <span
               className={cn(
-                'font-mono text-2xl font-bold tracking-tighter',
-                team2Win ? 'text-gray-900' : 'text-gray-400',
-                isLive && 'text-red-600'
+                'font-mono text-lg font-bold',
+                isLive && 'text-red-600',
+                !team2Win && isCompleted ? 'text-gray-400' : 'text-gray-900'
               )}
             >
               {match.team2_score ?? '-'}
             </span>
           </div>
         </div>
-      </div>
 
-      {/* Footer Action */}
-      <div className='flex items-center justify-between border-t border-gray-50 bg-gray-50/50 px-6 py-4 backdrop-blur-[2px] transition-colors group-hover:bg-blue-50/30'>
-        <span className='flex items-center gap-1.5 text-xs font-medium text-gray-500'>
-          <MapPin className='h-3 w-3 text-gray-400' />
-          {match.venue || 'Main Court'}
-        </span>
-        <button className='group/btn flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-blue-600 transition-colors hover:text-blue-700'>
-          {isLive ? 'Watch Live' : isCompleted ? 'Stats & Recap' : 'Preview'}
-          <ChevronRight className='h-3 w-3 transition-transform group-hover/btn:translate-x-0.5' />
-        </button>
+        {/* Right Side: Status & Action */}
+        <div className='flex w-[140px] flex-col items-center justify-center border-l border-gray-100 bg-gray-50/50 py-2'>
+          <div className='mb-2 flex flex-col items-center text-xs font-semibold'>
+            {isLive ? (
+              <div className='flex flex-col items-center'>
+                <span className='font-bold tracking-wider text-green-600'>
+                  Q4 - 02:44
+                </span>
+                <motion.span
+                  animate={{
+                    opacity: [0.5, 1, 0.5],
+                    width: ['80%', '100%', '80%'],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                  className='mt-1 h-0.5 rounded-full bg-green-600'
+                />
+              </div>
+            ) : isCompleted ? (
+              <span className='text-gray-500'>Final</span>
+            ) : (
+              <>
+                <span className='text-gray-500'>{dateLabel}</span>
+                <span className='text-gray-900'>{timeLabel}</span>
+              </>
+            )}
+          </div>
+
+          <div
+            className='relative flex h-8 w-24 items-center justify-center rounded-md text-[10px] font-bold uppercase tracking-wider text-white shadow-sm ring-1 ring-black/5'
+            style={{
+              background: `linear-gradient(135deg, #${t1Color} 50%, #${t2Color} 50%)`,
+            }}
+          >
+            <div className='absolute inset-0 rounded-md bg-black/10'></div>
+            <span className='relative z-10 drop-shadow-md'>
+              {isLive ? 'Live' : isCompleted ? 'Recap' : 'Preview'}
+            </span>
+          </div>
+        </div>
       </div>
     </motion.div>
   );
@@ -528,29 +506,6 @@ const StandingsTab = ({ teams }) => {
 
   return (
     <div className='flex flex-col gap-8'>
-      <div className='flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/60 bg-white p-5 shadow-sm'>
-        <div className='flex items-center gap-8'>
-          <div>
-            <label className='text-[10px] font-bold uppercase tracking-wider text-gray-400'>
-              LEAGUE
-            </label>
-            <div className='group flex cursor-pointer items-center gap-2 text-sm font-bold text-gray-900 transition-colors hover:text-blue-600'>
-              All Departments
-              <ChevronDown className='h-4 w-4 text-gray-400 transition-transform group-hover:rotate-180 group-hover:text-blue-500' />
-            </div>
-          </div>
-          <div>
-            <label className='text-[10px] font-bold uppercase tracking-wider text-gray-400'>
-              SEASON
-            </label>
-            <div className='group flex cursor-pointer items-center gap-2 text-sm font-bold text-gray-900 transition-colors hover:text-blue-600'>
-              2025-26 Season
-              <ChevronDown className='h-4 w-4 text-gray-400 transition-transform group-hover:rotate-180 group-hover:text-blue-500' />
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className='overflow-hidden rounded-2xl border border-white/60 bg-white shadow-sm ring-1 ring-black/5'>
         <div className='border-b border-gray-100 px-6 py-5'>
           <h3 className='flex items-center gap-2 text-base font-bold text-gray-900'>
