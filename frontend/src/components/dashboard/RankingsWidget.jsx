@@ -91,14 +91,11 @@ const RankingsWidget = ({ tournamentId }) => {
                         >
                           {index + 1}
                         </div>
-                        <Avatar className='h-8 w-8'>
-                          <AvatarImage
-                            src={`https://avatar.vercel.sh/${player.name}.png`}
-                          />
-                          <AvatarFallback>
-                            {getInitials(player.name)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <div className='flex h-8 w-8 items-center justify-center rounded-full bg-muted'>
+                          <span className='material-symbols-rounded text-lg text-muted-foreground'>
+                            person
+                          </span>
+                        </div>
                         <div className='flex flex-col'>
                           <span className='text-sm font-medium leading-none'>
                             {player.name}

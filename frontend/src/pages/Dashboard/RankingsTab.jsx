@@ -166,10 +166,11 @@ const RankingsTab = ({ tournamentId }) => {
       filterable: true,
       renderCell: (row) => (
         <div className='flex items-center gap-3'>
-          <Avatar className='h-8 w-8'>
-            <AvatarImage src={`https://avatar.vercel.sh/${row.name}.png`} />
-            <AvatarFallback>{getInitials(row.name)}</AvatarFallback>
-          </Avatar>
+          <div className='flex h-8 w-8 items-center justify-center rounded-full bg-muted'>
+            <span className='material-symbols-rounded text-lg text-muted-foreground'>
+              person
+            </span>
+          </div>
           <span className='font-medium text-foreground'>{row.name}</span>
         </div>
       ),

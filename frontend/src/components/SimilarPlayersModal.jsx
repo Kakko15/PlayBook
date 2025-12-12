@@ -65,12 +65,11 @@ const SimilarPlayersModal = ({ isOpen, onClose, player, game }) => {
                 className='flex items-center justify-between rounded-lg border p-3'
               >
                 <div className='flex items-center gap-3'>
-                  <Avatar>
-                    <AvatarImage
-                      src={`https://avatar.vercel.sh/${p.name}.png`}
-                    />
-                    <AvatarFallback>{getInitials(p.name)}</AvatarFallback>
-                  </Avatar>
+                  <div className='flex h-10 w-10 items-center justify-center rounded-full bg-muted'>
+                    <span className='material-symbols-rounded text-2xl text-muted-foreground'>
+                      person
+                    </span>
+                  </div>
                   <div>
                     <p className='font-semibold text-foreground'>{p.name}</p>
                   </div>

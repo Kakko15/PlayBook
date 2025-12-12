@@ -65,10 +65,11 @@ const AwardCard = ({
         </div>
       </CardHeader>
       <CardContent className='flex items-center gap-3'>
-        <Avatar className='h-12 w-12 border-2 border-background shadow-sm'>
-          <AvatarImage src={`https://avatar.vercel.sh/${player.name}.png`} />
-          <AvatarFallback>{getInitials(player.name)}</AvatarFallback>
-        </Avatar>
+        <div className='flex h-12 w-12 items-center justify-center rounded-full border-2 border-background bg-muted shadow-sm'>
+          <span className='material-symbols-rounded text-3xl text-muted-foreground'>
+            person
+          </span>
+        </div>
         <div>
           <p className='text-lg font-bold text-foreground'>{player.name}</p>
           <p className='text-sm font-medium text-muted-foreground'>

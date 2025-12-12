@@ -172,11 +172,11 @@ const PlayerManager = ({ isOpen, onClose, team }) => {
                     className='flex items-center justify-between rounded-lg border border-border p-3'
                   >
                     <div className='flex items-center gap-3'>
-                      <img
-                        src={`https://avatar.vercel.sh/${player.name}.png`}
-                        alt={player.name}
-                        className='h-10 w-10 rounded-full bg-muted'
-                      />
+                      <div className='flex h-10 w-10 items-center justify-center rounded-full bg-muted'>
+                        <span className='material-symbols-rounded text-2xl text-muted-foreground'>
+                          person
+                        </span>
+                      </div>
                       <div>
                         <p className='font-semibold'>{player.name}</p>
                         {player.game_specific_data?.position && (

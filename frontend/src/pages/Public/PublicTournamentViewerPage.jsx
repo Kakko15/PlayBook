@@ -105,7 +105,11 @@ const PublicTournamentViewerPage = () => {
       </header>
 
       <main className='flex-1 p-4 md:p-8'>
-        <Tabs value={activeTab} onValueChange={handleTabChange} className='w-full'>
+        <Tabs
+          value={activeTab}
+          onValueChange={handleTabChange}
+          className='w-full'
+        >
           <TabsList className='grid w-full grid-cols-1 sm:grid-cols-5'>
             <TabsTrigger value='standings'>
               <Icon name='leaderboard' className='mr-0 h-4 w-4 sm:mr-2' />
@@ -364,11 +368,11 @@ const TeamsTab = ({ teams, onCompare }) => (
               className='flex items-center justify-between rounded-md p-1 hover:bg-muted/50'
             >
               <div className='flex items-center gap-2'>
-                <img
-                  src={`https://avatar.vercel.sh/${player.name}.png`}
-                  alt={player.name}
-                  className='h-6 w-6 rounded-full'
-                />
+                <div className='flex h-6 w-6 items-center justify-center rounded-full bg-muted'>
+                  <span className='material-symbols-rounded text-sm text-muted-foreground'>
+                    person
+                  </span>
+                </div>
                 <span className='text-sm text-muted-foreground'>
                   {player.name}
                 </span>
