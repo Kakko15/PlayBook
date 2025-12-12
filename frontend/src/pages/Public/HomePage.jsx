@@ -52,7 +52,7 @@ const HomePage = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [recentMatches, setRecentMatches] = useState([]);
   const [prediction, setPrediction] = useState(null);
-  const [teams, setTeams] = useState([]);
+
   const [timeLeft, setTimeLeft] = useState('');
   const [isBracketOpen, setIsBracketOpen] = useState(false);
 
@@ -69,19 +69,13 @@ const HomePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [
-          nextMatchRes,
-          topPlayerRes,
-          announcementsRes,
-          recentMatchesRes,
-          teamsRes,
-        ] = await Promise.all([
-          fetch('http://localhost:3001/api/public/next-match'),
-          fetch('http://localhost:3001/api/public/top-player'),
-          fetch('http://localhost:3001/api/public/announcements'),
-          fetch('http://localhost:3001/api/public/recent-matches'),
-          fetch('http://localhost:3001/api/public/all-teams'),
-        ]);
+        const [nextMatchRes, topPlayerRes, announcementsRes, recentMatchesRes] =
+          await Promise.all([
+            fetch('http://localhost:3001/api/public/next-match'),
+            fetch('http://localhost:3001/api/public/top-player'),
+            fetch('http://localhost:3001/api/public/announcements'),
+            fetch('http://localhost:3001/api/public/recent-matches'),
+          ]);
 
         if (nextMatchRes.ok) {
           const data = await nextMatchRes.json();
@@ -107,10 +101,6 @@ const HomePage = () => {
         if (recentMatchesRes.ok) {
           const data = await recentMatchesRes.json();
           setRecentMatches(data);
-        }
-        if (teamsRes.ok) {
-          const data = await teamsRes.json();
-          setTeams(data);
         }
       } catch (error) {
         console.error('Failed to fetch additional data:', error);
@@ -210,7 +200,7 @@ const HomePage = () => {
   const departments = [
     {
       name: 'College of Computing Studies',
-      acronym: 'CCS',
+      acronym: 'CCSICT',
       color: 'text-orange-500',
     },
     {
@@ -223,12 +213,12 @@ const HomePage = () => {
       acronym: 'CAS',
       color: 'text-blue-500',
     },
-    { name: 'College of Engineering', acronym: 'CEAT', color: 'text-red-600' },
+    { name: 'College of Engineering', acronym: 'COE', color: 'text-red-600' },
     { name: 'College of Nursing', acronym: 'CON', color: 'text-green-500' },
-    { name: 'College of Education', acronym: 'EDUC', color: 'text-pink-500' },
+    { name: 'College of Education', acronym: 'CEd', color: 'text-pink-500' },
     {
       name: 'College of Agriculture',
-      acronym: 'AGRI',
+      acronym: 'CA',
       color: 'text-emerald-600',
     },
     { name: 'Criminal Justice', acronym: 'CCJE', color: 'text-violet-600' },
@@ -720,50 +710,6 @@ const HomePage = () => {
             </div>
           </div>
         </section>
-
-        {/* Team Gallery Marquee */}
-        {teams.length > 0 && (
-          <section className='border-y border-white/5 bg-black/40 py-12 backdrop-blur-sm'>
-            <div className='container mx-auto max-w-7xl px-4 text-center md:px-8'>
-              <p className='mb-8 text-sm font-medium uppercase tracking-widest text-muted-foreground'>
-                Competing Teams
-              </p>
-              <div className='flex overflow-hidden'>
-                <motion.div
-                  className='flex gap-12 whitespace-nowrap px-4'
-                  animate={{ x: ['0%', '-50%'] }}
-                  transition={{
-                    repeat: Infinity,
-                    ease: 'linear',
-                    duration: 40,
-                  }}
-                >
-                  {[...teams, ...teams].map((team, index) => (
-                    <div
-                      key={index}
-                      className='group flex flex-col items-center gap-3 opacity-50 transition-opacity hover:opacity-100'
-                    >
-                      <div className='flex h-16 w-16 items-center justify-center rounded-full bg-white/5 text-2xl font-bold text-primary ring-1 ring-white/10 transition-all group-hover:bg-primary/20 group-hover:ring-primary/50'>
-                        {team.logo_url ? (
-                          <img
-                            src={team.logo_url}
-                            alt={team.name}
-                            className='h-full w-full rounded-full object-cover'
-                          />
-                        ) : (
-                          team.department?.acronym?.[0] || 'T'
-                        )}
-                      </div>
-                      <span className='text-sm font-medium text-muted-foreground group-hover:text-foreground'>
-                        {team.name}
-                      </span>
-                    </div>
-                  ))}
-                </motion.div>
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* How It Works Section */}
         <section className='relative z-10 py-24'>
