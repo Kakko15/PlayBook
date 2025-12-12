@@ -1,5 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Users, Trophy, XCircle, Edit, Trash2, UserCog } from 'lucide-react';
 
 const DEPARTMENT_COLORS = {
@@ -65,31 +71,60 @@ const TeamCard = ({ team, onEdit, onDelete, onManagePlayers }) => {
         </div>
 
         <div className='mt-4 flex gap-2'>
-          <Button
-            variant='outline'
-            size='sm'
-            className='flex-1'
-            onClick={() => onManagePlayers(team)}
-          >
-            <UserCog className='mr-2 h-4 w-4' />
-            Roster
-          </Button>
-          <Button
-            variant='ghost'
-            size='icon'
-            className='h-9 w-9'
-            onClick={() => onEdit(team)}
-          >
-            <Edit className='h-4 w-4 text-muted-foreground' />
-          </Button>
-          <Button
-            variant='ghost'
-            size='icon'
-            className='h-9 w-9 hover:bg-destructive/10 hover:text-destructive'
-            onClick={() => onDelete(team)}
-          >
-            <Trash2 className='h-4 w-4' />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='flex-1'
+                  onClick={() => onManagePlayers(team)}
+                >
+                  <UserCog className='mr-2 h-4 w-4' />
+                  Roster
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Manage Team Roster</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='h-9 w-9'
+                  onClick={() => onEdit(team)}
+                >
+                  <Edit className='h-4 w-4 text-muted-foreground' />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Edit Team Details</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='h-9 w-9 hover:bg-destructive/10 hover:text-destructive'
+                  onClick={() => onDelete(team)}
+                >
+                  <Trash2 className='h-4 w-4' />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Delete Team</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </CardContent>
     </Card>

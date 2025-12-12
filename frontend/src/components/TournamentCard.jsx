@@ -15,6 +15,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdownMenu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import Icon from '@/components/Icon';
 
 const itemVariants = {
@@ -150,12 +156,18 @@ const TournamentCard = ({
       </div>
 
       <div className='space-y-3 bg-card p-4'>
-        <h3
-          className='truncate font-sans text-xl font-bold text-foreground'
-          title={tournament.name}
-        >
-          {tournament.name}
-        </h3>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <h3 className='truncate font-sans text-xl font-bold text-foreground'>
+                {tournament.name}
+              </h3>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{tournament.name}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
         <div className='flex items-center justify-between text-sm'>
           <div className='flex items-center text-muted-foreground'>

@@ -4,6 +4,12 @@ import { motion } from 'framer-motion';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Loader2, MapPin } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import GameIcon from '@/components/GameIcon';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -88,13 +94,22 @@ const PublicTournamentViewerPage = () => {
       className='flex min-h-screen flex-col bg-background'
     >
       <header className='flex items-center gap-4 border-b border-border bg-card p-4'>
-        <Button
-          variant='ghost'
-          size='icon'
-          onClick={() => navigate('/tournaments')}
-        >
-          <Icon name='arrow_back' />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant='ghost'
+                size='icon'
+                onClick={() => navigate('/tournaments')}
+              >
+                <Icon name='arrow_back' />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Back to Tournaments</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <GameIcon game={tournament.game} />
         <div>
           <h1 className='font-sans text-2xl font-bold text-foreground'>
@@ -377,15 +392,23 @@ const TeamsTab = ({ teams, onCompare }) => (
                   {player.name}
                 </span>
               </div>
-              <Button
-                variant='ghost'
-                size='icon'
-                className='h-6 w-6 text-muted-foreground hover:text-primary'
-                onClick={() => onCompare(player)}
-                title='Find Similar Players'
-              >
-                <Icon name='compare_arrows' className='text-base' />
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      className='h-6 w-6 text-muted-foreground hover:text-primary'
+                      onClick={() => onCompare(player)}
+                    >
+                      <Icon name='compare_arrows' className='text-base' />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Find Similar Players</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           ))}
         </div>

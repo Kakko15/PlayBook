@@ -8,6 +8,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Loader2, Plus, User, Edit, Trash2, Search } from 'lucide-react';
 import PlayerModal from '@/components/PlayerModal';
 import {
@@ -187,20 +193,39 @@ const PlayerManager = ({ isOpen, onClose, team }) => {
                       </div>
                     </div>
                     <div className='flex gap-1'>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        onClick={() => handleEditClick(player)}
-                      >
-                        <Edit className='h-4 w-4' />
-                      </Button>
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        onClick={() => handleDeleteClick(player)}
-                      >
-                        <Trash2 className='h-4 w-4 text-destructive' />
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              onClick={() => handleEditClick(player)}
+                            >
+                              <Edit className='h-4 w-4' />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit Player</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              onClick={() => handleDeleteClick(player)}
+                            >
+                              <Trash2 className='h-4 w-4 text-destructive' />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Remove Player</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
                 ))
