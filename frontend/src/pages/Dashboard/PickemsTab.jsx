@@ -60,7 +60,9 @@ const PickemsTab = ({ tournamentId }) => {
       // and the guest ID useEffect runs on mount.
       // We should probably pass guestId as a dependency or read from localStorage directly here.
 
-      const currentGuestId = localStorage.getItem('pickems_guest_id');
+      // Use state guestId if available, otherwise try local storage
+      const currentGuestId =
+        guestId || localStorage.getItem('pickems_guest_id');
 
       const [boardData, scheduleData, picksData] = await Promise.all([
         api.getPickLeaderboard(tournamentId),
@@ -77,12 +79,12 @@ const PickemsTab = ({ tournamentId }) => {
       }, {});
       setMyPicks(picksMap);
     } catch (error) {
-      toast.error("Failed to load Pick'ems data.");
+      // toast.error("Failed to load Pick'ems data.");
       console.error(error);
     } finally {
       setIsLoading(false);
     }
-  }, [tournamentId, user]);
+  }, [tournamentId, user, guestId]);
 
   useEffect(() => {
     fetchData();

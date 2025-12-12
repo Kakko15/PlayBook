@@ -54,7 +54,8 @@ apiClient.interceptors.response.use(
         currentPath.startsWith('/auth/callback') ||
         currentPath.startsWith('/pending-approval') ||
         currentPath.startsWith('/check-email') ||
-        currentPath.startsWith('/verify-2fa');
+        currentPath.startsWith('/verify-2fa') ||
+        currentPath.startsWith('/tournaments/');
 
       if (isPublicPage) {
         return Promise.reject(error);

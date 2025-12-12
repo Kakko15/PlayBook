@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Reorder, useDragControls } from 'framer-motion';
+import { Reorder, useDragControls, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { MoreVertical, CalendarDays, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -83,38 +83,45 @@ const TournamentCard = ({
     setTimeout(() => setIsDragging(false), 0);
   };
 
+  const CardWrapper = isPublic ? motion.div : Reorder.Item;
+
+  const wrapperProps = isPublic
+    ? {
+        layout: true,
+        variants: itemVariants,
+        initial: 'hidden',
+        animate: 'show',
+        onClick: handleClick,
+        className: cn(
+          'group cursor-pointer overflow-hidden rounded-lg bg-card shadow-lg transition-shadow duration-300 ease-out hover:shadow-2xl',
+          className
+        ),
+      }
+    : {
+        value: tournament,
+        variants: itemVariants,
+        onClick: handleClick,
+        onPointerDown: handlePointerDown,
+        dragListener: false,
+        dragControls: dragControls,
+        onDragStart: handleDragStart,
+        onDragEnd: handleDragEnd,
+        layout: true,
+        whileDrag: {
+          scale: 1.05,
+          cursor: 'grabbing',
+          zIndex: 10,
+          boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)',
+          transition: { duration: 0.15 },
+        },
+        className: cn(
+          'group cursor-grab select-none overflow-hidden rounded-lg bg-card shadow-lg transition-shadow duration-300 ease-out hover:shadow-2xl',
+          className
+        ),
+      };
+
   return (
-    <Reorder.Item
-      value={tournament}
-      variants={itemVariants}
-      onClick={handleClick}
-      onPointerDown={handlePointerDown}
-      dragListener={false}
-      dragControls={dragControls}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      layout
-      transition={{
-        layout: {
-          type: 'tween',
-          duration: 0.25,
-          ease: [0.4, 0, 0.2, 1],
-        },
-      }}
-      whileDrag={{
-        scale: 1.05,
-        cursor: 'grabbing',
-        zIndex: 10,
-        boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)',
-        transition: {
-          duration: 0.15,
-        },
-      }}
-      className={cn(
-        'group cursor-grab select-none overflow-hidden rounded-lg bg-card shadow-lg transition-shadow duration-300 ease-out hover:shadow-2xl',
-        className
-      )}
-    >
+    <CardWrapper {...wrapperProps}>
       <div
         className={cn(
           'relative flex h-32 items-center justify-center p-4',
@@ -191,7 +198,7 @@ const TournamentCard = ({
           <span>{dateRange}</span>
         </div>
       </div>
-    </Reorder.Item>
+    </CardWrapper>
   );
 };
 

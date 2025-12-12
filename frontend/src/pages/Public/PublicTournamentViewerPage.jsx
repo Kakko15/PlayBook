@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
 import { Loader2, MapPin } from 'lucide-react';
@@ -25,6 +25,46 @@ import {
 } from '@/lib/tournamentUtils.jsx';
 import { cn } from '@/lib/utils';
 import SimilarPlayersModal from '@/components/SimilarPlayersModal';
+
+const DEPARTMENT_COLORS = {
+  CBAPA: '080e88',
+  CCJE: '7d0608',
+  CA: '174008',
+  CED: '217580',
+  COE: '4c0204',
+  CCSICT: 'fda003',
+  CON: 'd60685',
+  SVM: '464646',
+  CAS: 'dac607',
+  IOF: '018d99',
+  COM: '2c9103',
+};
+
+const getTeamAcronym = (team) => {
+  if (team?.department?.acronym) return team.department.acronym;
+  if (!team?.name) return 'NA';
+
+  const name = team.name.toLowerCase();
+
+  if (name.includes('business') || name.includes('cbapa')) return 'CBAPA';
+  if (name.includes('criminal') || name.includes('ccje')) return 'CCJE';
+  if (name.includes('agriculture') || name.includes('agri')) return 'CA';
+  if (name.includes('education') || name.includes('ced')) return 'CED';
+  if (name.includes('engineering') || name.includes('coe')) return 'COE';
+  if (
+    name.includes('computing') ||
+    name.includes('ccs') ||
+    name.includes('ict')
+  )
+    return 'CCSICT';
+  if (name.includes('nursing') || name.includes('con')) return 'CON';
+  if (name.includes('veterinary') || name.includes('svm')) return 'SVM';
+  if (name.includes('arts') || name.includes('cas')) return 'CAS';
+  if (name.includes('fisheries') || name.includes('iof')) return 'IOF';
+  if (name.includes('medicine') || name.includes('com')) return 'COM';
+
+  return team.name.substring(0, 2).toUpperCase();
+};
 
 const PublicTournamentViewerPage = () => {
   const { id } = useParams();
@@ -148,32 +188,65 @@ const PublicTournamentViewerPage = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value='standings' className='mt-6'>
-            <StandingsTab teams={teams} />
-          </TabsContent>
-          <TabsContent value='schedule' className='mt-6'>
-            <ScheduleTab matches={matches} />
-          </TabsContent>
-          <TabsContent value='teams' className='mt-6'>
-            <TeamsTab teams={teams} onCompare={handleCompare} />
-          </TabsContent>
-          <TabsContent value='playoffs' className='mt-6'>
-            <div className='flex h-48 flex-col items-center justify-center rounded-lg border-2 border-dashed border-border bg-card'>
-              <Icon
-                name='emoji_events'
-                className='h-12 w-12 text-muted-foreground'
-              />
-              <h3 className='mt-4 text-xl font-semibold text-foreground'>
-                Playoffs Coming Soon
-              </h3>
-              <p className='mt-2 text-muted-foreground'>
-                The bracket will be available once the group stage is complete.
-              </p>
-            </div>
-          </TabsContent>
-          <TabsContent value='pickems' className='mt-6'>
-            <PickemsTab tournamentId={tournament.id} />
-          </TabsContent>
+          <div className='mt-6'>
+            <AnimatePresence mode='wait'>
+              {activeTab === 'standings' && (
+                <motion.div
+                  key='standings'
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <StandingsTab teams={teams} />
+                </motion.div>
+              )}
+              {activeTab === 'schedule' && (
+                <motion.div
+                  key='schedule'
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ScheduleTab matches={matches} />
+                </motion.div>
+              )}
+              {activeTab === 'teams' && (
+                <motion.div
+                  key='teams'
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <TeamsTab teams={teams} onCompare={handleCompare} />
+                </motion.div>
+              )}
+              {activeTab === 'playoffs' && (
+                <motion.div
+                  key='playoffs'
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <PlayoffsTab matches={matches} />
+                </motion.div>
+              )}
+              {activeTab === 'pickems' && (
+                <motion.div
+                  key='pickems'
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <PickemsTab tournamentId={tournament.id} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </Tabs>
       </main>
 
@@ -216,16 +289,21 @@ const StandingsTab = ({ teams }) => (
               {index + 1}
             </td>
             <td className='flex items-center gap-3 px-4 py-3'>
-              <img
-                src={
-                  team.logo_url || `https://avatar.vercel.sh/${team.name}.png`
-                }
-                alt={`${team.name} logo`}
-                className='h-8 w-8 rounded-full bg-muted'
-                onError={(e) => {
-                  e.currentTarget.src = `https://avatar.vercel.sh/${team.name}.png`;
-                }}
-              />
+              {(() => {
+                const acronym = getTeamAcronym(team);
+                const color = DEPARTMENT_COLORS[acronym] || '64748b';
+                const logoSrc =
+                  team.logo_url && !team.logo_url.includes('avatar.vercel.sh')
+                    ? team.logo_url
+                    : `https://ui-avatars.com/api/?name=${encodeURIComponent(acronym)}&background=${color}&color=fff&size=128&bold=true&length=4`;
+                return (
+                  <img
+                    src={logoSrc}
+                    alt={`${team.name} logo`}
+                    className='h-8 w-8 rounded-full bg-muted object-cover'
+                  />
+                );
+              })()}
               <span className='font-medium text-foreground'>{team.name}</span>
             </td>
             <td className='px-4 py-3 text-muted-foreground'>
@@ -322,16 +400,22 @@ const TeamDisplay = ({ team, score, isWinner, isReversed = false }) => (
       isReversed ? 'flex-row-reverse text-right' : 'text-left'
     )}
   >
-    <img
-      src={
-        team?.logo_url || `https://avatar.vercel.sh/${team?.name || 'TBD'}.png`
-      }
-      alt={`${team?.name || 'TBD'} logo`}
-      className='h-8 w-8 rounded-full bg-muted'
-      onError={(e) => {
-        e.currentTarget.src = `https://avatar.vercel.sh/${team?.name || 'TBD'}.png`;
-      }}
-    />
+    {(() => {
+      const acronym = getTeamAcronym(team);
+      const color = DEPARTMENT_COLORS[acronym] || '64748b';
+      const logoSrc =
+        team?.logo_url && !team.logo_url.includes('avatar.vercel.sh')
+          ? team.logo_url
+          : `https://ui-avatars.com/api/?name=${encodeURIComponent(acronym)}&background=${color}&color=fff&size=128&bold=true&length=4`;
+
+      return (
+        <img
+          src={logoSrc}
+          alt={`${team?.name || 'TBD'} logo`}
+          className='h-8 w-8 rounded-full bg-muted object-cover'
+        />
+      );
+    })()}
     <span
       className={cn(
         'flex-1 truncate font-medium',
@@ -361,14 +445,21 @@ const TeamsTab = ({ teams, onCompare }) => (
         className='rounded-lg border border-border bg-card p-4'
       >
         <div className='flex items-center gap-3'>
-          <img
-            src={team.logo_url || `https://avatar.vercel.sh/${team.name}.png`}
-            alt={`${team.name} logo`}
-            className='h-10 w-10 rounded-full bg-muted'
-            onError={(e) => {
-              e.currentTarget.src = `https://avatar.vercel.sh/${team.name}.png`;
-            }}
-          />
+          {(() => {
+            const acronym = getTeamAcronym(team);
+            const color = DEPARTMENT_COLORS[acronym] || '64748b';
+            const logoSrc =
+              team.logo_url && !team.logo_url.includes('avatar.vercel.sh')
+                ? team.logo_url
+                : `https://ui-avatars.com/api/?name=${encodeURIComponent(acronym)}&background=${color}&color=fff&size=128&bold=true&length=4`;
+            return (
+              <img
+                src={logoSrc}
+                alt={`${team.name} logo`}
+                className='h-10 w-10 rounded-full bg-muted object-cover'
+              />
+            );
+          })()}
           <div>
             <h3 className='font-semibold text-foreground'>{team.name}</h3>
             <p className='text-sm text-muted-foreground'>
