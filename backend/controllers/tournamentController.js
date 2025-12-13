@@ -1032,18 +1032,28 @@ export const resetElos = async (req, res, next) => {
   const { userId } = req.user;
 
   try {
-    const { error } = await supabase
+    // Reset team ELO, wins, and losses for this tournament
+    const { error: teamError } = await supabase
       .from("teams")
-      .update({ elo_rating: 1200, wins: 0, losses: 0 }) // Reset ELO, wins, and losses
+      .update({ elo_rating: 1200, wins: 0, losses: 0 })
       .eq("tournament_id", tournamentId);
 
-    if (error) return next(error);
+    if (teamError) return next(teamError);
+
+    // Reset ALL department ELO ratings to 1200
+    // We use .neq("id", "") to include all rows since Supabase requires a filter
+    const { error: deptError } = await supabase
+      .from("departments")
+      .update({ elo_rating: 1200 })
+      .neq("id", "00000000-0000-0000-0000-000000000000"); // This filter matches all real IDs
+
+    if (deptError) return next(deptError);
 
     await supabase.rpc("log_activity", {
       p_icon: "restart_alt",
       p_color: "text-orange-600",
       p_title: "Standings Reset",
-      p_description: `ELO ratings, wins, and losses were reset for all teams in the tournament.`,
+      p_description: `ELO ratings, wins, and losses were reset for all teams and departments.`,
       p_tournament_id: tournamentId,
       p_user_id: userId,
     });

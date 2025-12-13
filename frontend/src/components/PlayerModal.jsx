@@ -57,6 +57,8 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
 
   const form = useForm({
     resolver: zodResolver(formSchema),
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
     defaultValues: {
       name: '',
       student_id: '',
@@ -169,7 +171,7 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
             <FormField
               control={form.control}
               name='name'
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <FormItem>
                   <FormLabel>
                     Player Name <span className='text-red-500'>*</span>
@@ -178,6 +180,7 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
                     <Input
                       placeholder='e.g., "Juan Dela Cruz"'
                       disabled={isLoading}
+                      aria-invalid={!!fieldState.error}
                       {...field}
                       onChange={(e) => {
                         field.onChange(e.target.value.replace(/[0-9]/g, ''));
@@ -193,7 +196,7 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
               <FormField
                 control={form.control}
                 name='student_id'
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>
                       Student ID No. <span className='text-red-500'>*</span>
@@ -202,6 +205,7 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
                       <Input
                         placeholder='e.g. 21-12345'
                         disabled={isLoading}
+                        aria-invalid={!!fieldState.error}
                         {...field}
                       />
                     </FormControl>
@@ -235,7 +239,7 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
                 <FormField
                   control={form.control}
                   name='course'
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
                       <FormLabel>
                         Course / Program <span className='text-red-500'>*</span>
@@ -244,6 +248,7 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
                         <Input
                           placeholder='e.g. BS Civil Engineering'
                           disabled={isLoading}
+                          aria-invalid={!!fieldState.error}
                           {...field}
                         />
                       </FormControl>
@@ -256,7 +261,7 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
                 <FormField
                   control={form.control}
                   name='year_level'
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <FormItem>
                       <FormLabel>
                         Year Level <span className='text-red-500'>*</span>
@@ -267,7 +272,7 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
                         disabled={isLoading}
                       >
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger aria-invalid={!!fieldState.error}>
                             <SelectValue placeholder='Year' />
                           </SelectTrigger>
                         </FormControl>
@@ -290,7 +295,7 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
               <FormField
                 control={form.control}
                 name='position'
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
                     <FormLabel>
                       Primary Position <span className='text-red-500'>*</span>
@@ -307,7 +312,7 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
                       disabled={isLoading}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger aria-invalid={!!fieldState.error}>
                           <SelectValue placeholder='Select...' />
                         </SelectTrigger>
                       </FormControl>
