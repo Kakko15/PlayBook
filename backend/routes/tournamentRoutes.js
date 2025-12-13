@@ -24,6 +24,7 @@ import {
   logMatchResult,
   finalizeMatch,
   resetElos,
+  generateMockTournament,
 } from "../controllers/tournamentController.js";
 import {
   protect,
@@ -65,5 +66,6 @@ router.post("/:id/playoffs/generate", generatePlayoffBracket);
 router.put("/match/:id/log", isScorerOrAdmin, logMatchResult);
 router.post("/match/:id/finalize", isAdminOrSuperAdmin, finalizeMatch);
 router.put("/:id/elo/reset", isAdminOrSuperAdmin, resetElos);
+router.post("/:id/mock/generate", isAdminOrSuperAdmin, generateMockTournament);
 
 export default router;

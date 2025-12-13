@@ -33,6 +33,9 @@ const TournamentListPage = () => {
   const [selectedTournament, setSelectedTournament] = useState(null);
   const [tournamentToDelete, setTournamentToDelete] = useState(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [tournamentToMock, setTournamentToMock] = useState(null);
+  const [isMockAlertOpen, setIsMockAlertOpen] = useState(false);
+  const [isGeneratingMock, setIsGeneratingMock] = useState(false);
 
   const fetchTournaments = useCallback(async () => {
     setIsLoading(true);
@@ -86,6 +89,31 @@ const TournamentListPage = () => {
     } finally {
       setIsDeleteAlertOpen(false);
       setTournamentToDelete(null);
+    }
+  };
+
+  const handleGenerateMockClick = (tournament) => {
+    setTournamentToMock(tournament);
+    setIsMockAlertOpen(true);
+  };
+
+  const confirmGenerateMock = async () => {
+    if (!tournamentToMock) return;
+    setIsGeneratingMock(true);
+    try {
+      const result = await api.generateMockTournament(tournamentToMock.id);
+      toast.success(
+        `Mock data generated! ${result.stats.playersGenerated} players, ${result.stats.matchesPlayed} matches. Champion: ${result.stats.champion}`
+      );
+      fetchTournaments();
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || 'Failed to generate mock data.'
+      );
+    } finally {
+      setIsGeneratingMock(false);
+      setIsMockAlertOpen(false);
+      setTournamentToMock(null);
     }
   };
 
@@ -185,6 +213,7 @@ const TournamentListPage = () => {
               tournament={tournament}
               onEdit={handleEditClick}
               onDelete={handleDeleteClick}
+              onGenerateMock={handleGenerateMockClick}
               className='w-full md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)]'
             />
           ) : (
@@ -290,6 +319,58 @@ const TournamentListPage = () => {
               className={buttonVariants({ variant: 'destructive' })}
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isMockAlertOpen} onOpenChange={setIsMockAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className='flex items-center gap-2'>
+              <span className='material-symbols-rounded text-purple-600'>
+                science
+              </span>
+              Generate Mock Tournament Data
+            </AlertDialogTitle>
+            <AlertDialogDescription className='space-y-2'>
+              <p>
+                This will generate mock data for "{tournamentToMock?.name}"
+                including:
+              </p>
+              <ul className='ml-4 list-disc text-sm'>
+                <li>5 random players per team</li>
+                <li>Complete bracket matches with scores</li>
+                <li>Updated standings and ELO ratings</li>
+                <li>Player statistics for awards</li>
+              </ul>
+              <p className='font-medium text-destructive'>
+                ⚠️ Warning: This will replace all existing players and matches!
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isGeneratingMock}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmGenerateMock}
+              disabled={isGeneratingMock}
+              className='bg-purple-600 hover:bg-purple-700'
+            >
+              {isGeneratingMock ? (
+                <>
+                  <span className='material-symbols-rounded mr-2 animate-spin'>
+                    progress_activity
+                  </span>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <span className='material-symbols-rounded mr-2'>bolt</span>
+                  Generate Mock Data
+                </>
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

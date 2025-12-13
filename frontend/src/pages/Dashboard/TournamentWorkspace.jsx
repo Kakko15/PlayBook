@@ -186,6 +186,8 @@ const TournamentSettingsModal = ({
 }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isPublic, setIsPublic] = useState(tournament.registration_open);
+  const [isGeneratingMock, setIsGeneratingMock] = useState(false);
+  const [showMockConfirm, setShowMockConfirm] = useState(false);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -201,16 +203,35 @@ const TournamentSettingsModal = ({
     }
   };
 
+  const handleGenerateMock = async () => {
+    setIsGeneratingMock(true);
+    try {
+      const result = await api.generateMockTournament(tournament.id);
+      toast.success(
+        `Mock data generated! ${result.stats.playersGenerated} players, ${result.stats.matchesPlayed} matches. Champion: ${result.stats.champion}`
+      );
+      onSuccess();
+      onClose();
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || 'Failed to generate mock data.'
+      );
+    } finally {
+      setIsGeneratingMock(false);
+      setShowMockConfirm(false);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className='max-w-md'>
         <DialogHeader>
           <DialogTitle>Tournament Settings</DialogTitle>
           <DialogDescription>
             Manage settings for {tournament.name}.
           </DialogDescription>
         </DialogHeader>
-        <div className='py-4'>
+        <div className='space-y-4 py-4'>
           <div className='flex items-center justify-between rounded-lg border p-4'>
             <div>
               <Label htmlFor='public-switch' className='font-medium'>
@@ -224,15 +245,91 @@ const TournamentSettingsModal = ({
               id='public-switch'
               checked={isPublic}
               onCheckedChange={setIsPublic}
-              disabled={isSaving}
+              disabled={isSaving || isGeneratingMock}
             />
+          </div>
+
+          {/* Generate Mock Data Section */}
+          <div className='rounded-lg border border-purple-200 bg-purple-50/50 p-4 dark:border-purple-900 dark:bg-purple-950/20'>
+            <div className='flex items-start gap-3'>
+              <div className='flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900'>
+                <Icon
+                  name='science'
+                  className='text-purple-600 dark:text-purple-400'
+                />
+              </div>
+              <div className='flex-1'>
+                <Label className='font-medium text-purple-900 dark:text-purple-100'>
+                  Generate Mock Data
+                </Label>
+                <p className='mt-1 text-sm text-purple-700 dark:text-purple-300'>
+                  Populate this tournament with sample players, matches, and
+                  results for testing.
+                </p>
+
+                {!showMockConfirm ? (
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    className='mt-3 border-purple-300 text-purple-700 hover:bg-purple-100 dark:border-purple-700 dark:text-purple-300 dark:hover:bg-purple-900'
+                    onClick={() => setShowMockConfirm(true)}
+                    disabled={isSaving || isGeneratingMock}
+                  >
+                    <Icon name='bolt' className='mr-2' />
+                    Generate Mock Tournament
+                  </Button>
+                ) : (
+                  <div className='mt-3 space-y-3'>
+                    <div className='rounded-md bg-yellow-100 p-3 text-sm text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200'>
+                      <p className='font-medium'>⚠️ Warning</p>
+                      <p className='mt-1'>
+                        This will replace all existing players and matches with
+                        mock data!
+                      </p>
+                    </div>
+                    <div className='flex gap-2'>
+                      <Button
+                        size='sm'
+                        variant='outline'
+                        onClick={() => setShowMockConfirm(false)}
+                        disabled={isGeneratingMock}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size='sm'
+                        className='bg-purple-600 hover:bg-purple-700'
+                        onClick={handleGenerateMock}
+                        disabled={isGeneratingMock}
+                      >
+                        {isGeneratingMock ? (
+                          <>
+                            <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Icon name='check' className='mr-2' />
+                            Confirm
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
         <DialogFooter>
-          <Button variant='outline' onClick={onClose} disabled={isSaving}>
+          <Button
+            variant='outline'
+            onClick={onClose}
+            disabled={isSaving || isGeneratingMock}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
+          <Button onClick={handleSave} disabled={isSaving || isGeneratingMock}>
             {isSaving && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
             Save
           </Button>

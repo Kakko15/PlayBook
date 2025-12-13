@@ -389,6 +389,13 @@ const api = {
     return data;
   },
 
+  generateMockTournament: async (tournamentId) => {
+    const { data } = await apiClient.post(
+      `/tournaments/${tournamentId}/mock/generate`
+    );
+    return data;
+  },
+
   getPublicTournaments: async () => {
     const { data } = await apiClient.get('/public/tournaments');
     return data;

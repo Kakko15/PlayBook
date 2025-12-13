@@ -1065,3 +1065,479 @@ export const resetElos = async (req, res, next) => {
     next(error);
   }
 };
+
+// Mock player names for realistic simulation
+const MOCK_PLAYER_NAMES = [
+  "James Santos",
+  "Miguel Reyes",
+  "Carlos Garcia",
+  "Angelo Cruz",
+  "Rafael Mendoza",
+  "Luis Torres",
+  "Daniel Ramos",
+  "Marco Dela Cruz",
+  "Kevin Fernandez",
+  "Patrick Gonzales",
+  "Mark Rodriguez",
+  "Jerome Castro",
+  "Ryan Villanueva",
+  "Christian Bautista",
+  "John Aquino",
+  "Michael Lim",
+  "Paolo Tan",
+  "Josue Rivera",
+  "Adrian Sy",
+  "Francis Chua",
+  "Vincent Ong",
+  "Nathan Yap",
+  "Timothy Go",
+  "Emmanuel Lee",
+  "Antonio Co",
+  "Rico Velasco",
+  "Gabriel Flores",
+  "Ivan Morales",
+  "Bryan Pascual",
+  "Lorenzo Diaz",
+  "Enrique Salazar",
+  "Frederic Navarro",
+  "Oscar Padilla",
+  "Nicholas Romero",
+  "Eduardo Mercado",
+  "Roberto Aquino",
+  "Steven Cruz",
+  "Dennis Lim",
+  "Ronald Santos",
+  "Frederick Reyes",
+  "Andrew Garcia",
+  "Benjamin Torres",
+  "Christopher Ramos",
+  "David Mendoza",
+  "Edward Fernandez",
+  "Franklin Gonzales",
+  "George Rodriguez",
+  "Henry Castro",
+  "Isaac Villanueva",
+  "Jacob Bautista",
+];
+
+// Helper function to distribute total points among players
+const distributePoints = (totalPoints, numPlayers) => {
+  if (numPlayers === 0) return [];
+
+  const points = [];
+  let remaining = totalPoints;
+
+  for (let i = 0; i < numPlayers - 1; i++) {
+    // Give each player between 5-30% of remaining points
+    const maxShare = Math.min(remaining, Math.floor(totalPoints * 0.35));
+    const minShare = Math.floor(totalPoints * 0.05);
+    const share =
+      Math.floor(Math.random() * (maxShare - minShare + 1)) + minShare;
+    points.push(Math.max(0, share));
+    remaining -= share;
+  }
+
+  // Last player gets the rest
+  points.push(Math.max(0, remaining));
+
+  // Shuffle so high scorer isn't always last
+  return points.sort(() => Math.random() - 0.5);
+};
+
+// Helper function to generate realistic basketball stats based on points
+const generateBasketballStats = (points) => {
+  // Calculate field goals based on points
+  // Average: 2-point FG = 2pts, 3-point FG = 3pts, FT = 1pt
+  const threePointers = Math.floor(
+    Math.random() * Math.min(5, Math.floor(points / 3))
+  );
+  const threePointAttempts = threePointers + Math.floor(Math.random() * 3);
+  const pointsFromThrees = threePointers * 3;
+
+  const freeThrows = Math.floor(
+    Math.random() * Math.min(8, Math.floor((points - pointsFromThrees) / 2))
+  );
+  const freeThrowAttempts = freeThrows + Math.floor(Math.random() * 3);
+  const pointsFromFT = freeThrows;
+
+  const remainingPoints = Math.max(0, points - pointsFromThrees - pointsFromFT);
+  const twoPointers = Math.floor(remainingPoints / 2);
+  const fieldGoals = twoPointers + threePointers;
+  const fieldGoalAttempts = fieldGoals + Math.floor(Math.random() * 6) + 2;
+
+  const minutes = Math.floor(Math.random() * 25) + 10; // 10-35 minutes
+  const rebounds = Math.floor(Math.random() * 10);
+  const offRebounds = Math.floor(Math.random() * Math.min(3, rebounds));
+  const defRebounds = rebounds - offRebounds;
+  const assists = Math.floor(Math.random() * 8);
+  const steals = Math.floor(Math.random() * 4);
+  const blocks = Math.floor(Math.random() * 3);
+  const turnovers = Math.floor(Math.random() * 5);
+  const fouls = Math.floor(Math.random() * 5);
+
+  return {
+    minutes_played: minutes,
+    pts: points,
+    fg_made: fieldGoals,
+    fg_attempted: fieldGoalAttempts,
+    three_pt_made: threePointers,
+    three_pt_attempted: threePointAttempts,
+    ft_made: freeThrows,
+    ft_attempted: freeThrowAttempts,
+    reb: rebounds,
+    oreb: offRebounds,
+    dreb: defRebounds,
+    ast: assists,
+    steals: steals,
+    blocks: blocks,
+    turnovers: turnovers,
+    personal_fouls: fouls,
+    technical_fouls: 0,
+    fouls_drawn: Math.floor(Math.random() * 5),
+    games_started: Math.random() > 0.5 ? 1 : 0,
+    sportsmanship_rating: Math.floor(Math.random() * 2) + 4, // 4-5 rating
+  };
+};
+
+export const generateMockTournament = async (req, res, next) => {
+  const { id: tournamentId } = req.params;
+  const { userId } = req.user;
+
+  try {
+    console.log("Starting mock tournament generation for:", tournamentId);
+
+    // 1. Get tournament details
+    const { data: tournament, error: tournamentError } = await supabase
+      .from("tournaments")
+      .select("*, teams(id, name, department_id)")
+      .eq("id", tournamentId)
+      .single();
+
+    if (tournamentError) return next(tournamentError);
+    if (!tournament) {
+      return res.status(404).json({ message: "Tournament not found." });
+    }
+
+    const teams = tournament.teams || [];
+    if (teams.length < 2) {
+      return res.status(400).json({
+        message: "Tournament needs at least 2 teams to generate mock data.",
+      });
+    }
+
+    // 2. Clear existing data (matches, player stats)
+    await supabase.from("matches").delete().eq("tournament_id", tournamentId);
+
+    // Reset team stats
+    await supabase
+      .from("teams")
+      .update({ elo_rating: 1200, wins: 0, losses: 0 })
+      .eq("tournament_id", tournamentId);
+
+    // 3. Add mock players to each team (5 players per team)
+    const shuffledNames = [...MOCK_PLAYER_NAMES].sort(
+      () => Math.random() - 0.5
+    );
+    let nameIndex = 0;
+
+    for (const team of teams) {
+      // Delete existing players
+      await supabase.from("players").delete().eq("team_id", team.id);
+
+      // Add 5 new mock players
+      const playersToAdd = [];
+      for (let i = 0; i < 5; i++) {
+        playersToAdd.push({
+          team_id: team.id,
+          name: shuffledNames[nameIndex % shuffledNames.length],
+          isu_ps: Math.round((60 + Math.random() * 35) * 100) / 100,
+          offensive_rating: Math.round((50 + Math.random() * 45) * 100) / 100,
+          defensive_rating: Math.round((50 + Math.random() * 45) * 100) / 100,
+          avg_sportsmanship: Math.round((70 + Math.random() * 30) * 100) / 100,
+          game_count: Math.floor(3 + Math.random() * 5),
+        });
+        nameIndex++;
+      }
+
+      await supabase.from("players").insert(playersToAdd);
+    }
+
+    // 4. Generate bracket-style matches
+    const shuffledTeams = [...teams].sort(() => Math.random() - 0.5);
+    const matchesToInsert = [];
+    const venues = ["Open Gym", "Closed Gym", "Main Court", "Auxiliary Court"];
+
+    // Calculate rounds needed
+    const numTeams = shuffledTeams.length;
+    const rounds = Math.ceil(Math.log2(numTeams));
+
+    let currentRoundTeams = shuffledTeams.map((t) => ({
+      id: t.id,
+      name: t.name,
+    }));
+    let matchDate = new Date(tournament.start_date);
+    matchDate.setHours(9, 0, 0, 0);
+
+    const roundNames = [];
+    for (let r = 1; r <= rounds; r++) {
+      if (r === rounds) roundNames.push("Finals");
+      else if (r === rounds - 1) roundNames.push("Semifinals");
+      else if (r === rounds - 2) roundNames.push("Quarterfinals");
+      else roundNames.push(`Round ${r}`);
+    }
+
+    let allRoundData = [];
+
+    for (let round = 0; round < rounds; round++) {
+      const roundMatches = [];
+      const nextRoundTeams = [];
+
+      for (let i = 0; i < currentRoundTeams.length; i += 2) {
+        if (i + 1 < currentRoundTeams.length) {
+          const team1 = currentRoundTeams[i];
+          const team2 = currentRoundTeams[i + 1];
+
+          // Generate random scores - ensure no draws in basketball
+          let score1 = Math.floor(Math.random() * 35) + 65;
+          let score2 = Math.floor(Math.random() * 35) + 65;
+
+          // If scores are equal, add 1-5 points to a random team to break the tie
+          if (score1 === score2) {
+            const tiebreaker = Math.floor(Math.random() * 5) + 1;
+            if (Math.random() > 0.5) {
+              score1 += tiebreaker;
+            } else {
+              score2 += tiebreaker;
+            }
+          }
+
+          const winner = score1 > score2 ? team1 : team2;
+
+          roundMatches.push({
+            tournament_id: tournamentId,
+            team1_id: team1.id,
+            team2_id: team2.id,
+            team1_score: score1,
+            team2_score: score2,
+            round_name: roundNames[round],
+            status: "completed",
+            is_finalized: true,
+            venue: venues[i % venues.length],
+            match_date: new Date(matchDate).toISOString(),
+          });
+
+          nextRoundTeams.push(winner);
+
+          // Advance time
+          matchDate.setMinutes(matchDate.getMinutes() + 90);
+          if (matchDate.getHours() >= 17) {
+            matchDate.setDate(matchDate.getDate() + 1);
+            matchDate.setHours(9, 0, 0, 0);
+          }
+        } else {
+          // Bye - team advances automatically
+          nextRoundTeams.push(currentRoundTeams[i]);
+        }
+      }
+
+      allRoundData.push({ matches: roundMatches, winners: nextRoundTeams });
+      currentRoundTeams = nextRoundTeams;
+    }
+
+    // Insert all matches
+    for (const roundData of allRoundData) {
+      for (const match of roundData.matches) {
+        matchesToInsert.push(match);
+      }
+    }
+
+    const { data: insertedMatches, error: matchInsertError } = await supabase
+      .from("matches")
+      .insert(matchesToInsert)
+      .select();
+
+    if (matchInsertError) {
+      console.error("Error inserting matches:", matchInsertError);
+      return next(matchInsertError);
+    }
+
+    // 5.5 Create match_player_stats for each match
+    console.log("Creating player stats for matches...");
+
+    // First, get all players for each team
+    const { data: allPlayers, error: playersError } = await supabase
+      .from("players")
+      .select("id, team_id, name")
+      .in(
+        "team_id",
+        teams.map((t) => t.id)
+      );
+
+    if (playersError) {
+      console.error("Error fetching players:", playersError);
+    }
+
+    // Create a map of team_id to players
+    const teamPlayersMap = {};
+    if (allPlayers) {
+      allPlayers.forEach((player) => {
+        if (!teamPlayersMap[player.team_id]) {
+          teamPlayersMap[player.team_id] = [];
+        }
+        teamPlayersMap[player.team_id].push(player);
+      });
+    }
+
+    // Create match_player_stats for each match
+    const allPlayerStats = [];
+    for (let i = 0; i < insertedMatches.length; i++) {
+      const match = insertedMatches[i];
+      const matchData = matchesToInsert[i];
+
+      // Get players for both teams
+      const team1Players = teamPlayersMap[match.team1_id] || [];
+      const team2Players = teamPlayersMap[match.team2_id] || [];
+
+      // Calculate how many points each team's players should score
+      const team1TotalPoints = matchData.team1_score;
+      const team2TotalPoints = matchData.team2_score;
+
+      // Generate stats for team 1 players
+      const team1PointsDistribution = distributePoints(
+        team1TotalPoints,
+        team1Players.length
+      );
+      for (let j = 0; j < team1Players.length; j++) {
+        const points = team1PointsDistribution[j] || 0;
+        const statsObj = generateBasketballStats(points);
+        allPlayerStats.push({
+          match_id: match.id,
+          player_id: team1Players[j].id,
+          ...statsObj, // Spread as individual columns
+        });
+      }
+
+      // Generate stats for team 2 players
+      const team2PointsDistribution = distributePoints(
+        team2TotalPoints,
+        team2Players.length
+      );
+      for (let j = 0; j < team2Players.length; j++) {
+        const points = team2PointsDistribution[j] || 0;
+        const statsObj = generateBasketballStats(points);
+        allPlayerStats.push({
+          match_id: match.id,
+          player_id: team2Players[j].id,
+          ...statsObj, // Spread as individual columns
+        });
+      }
+    }
+
+    // Insert all player stats
+    if (allPlayerStats.length > 0) {
+      console.log(
+        "Sample player stat record:",
+        JSON.stringify(allPlayerStats[0], null, 2)
+      );
+      console.log(
+        `Attempting to insert ${allPlayerStats.length} player stat records...`
+      );
+
+      const { data: insertedStats, error: statsError } = await supabase
+        .from("match_player_stats")
+        .insert(allPlayerStats)
+        .select();
+
+      if (statsError) {
+        console.error("Error inserting player stats:", statsError);
+        console.error("Error details:", JSON.stringify(statsError, null, 2));
+      } else {
+        console.log(
+          `Successfully created ${insertedStats?.length || 0} player stat records`
+        );
+      }
+    } else {
+      console.log("No player stats to insert - allPlayerStats is empty");
+    }
+
+    // 5. Update team standings based on match results
+    const teamStats = {};
+    teams.forEach((team) => {
+      teamStats[team.id] = { wins: 0, losses: 0, elo: 1200 };
+    });
+
+    console.log("Processing match results for team stats...");
+    for (const match of matchesToInsert) {
+      const winnerId =
+        match.team1_score > match.team2_score ? match.team1_id : match.team2_id;
+      const loserId =
+        match.team1_score > match.team2_score ? match.team2_id : match.team1_id;
+
+      if (teamStats[winnerId]) {
+        teamStats[winnerId].wins++;
+        teamStats[winnerId].elo += Math.floor(20 + Math.random() * 15);
+      }
+      if (teamStats[loserId]) {
+        teamStats[loserId].losses++;
+        teamStats[loserId].elo -= Math.floor(10 + Math.random() * 10);
+      }
+    }
+
+    console.log("Team stats calculated:", JSON.stringify(teamStats, null, 2));
+
+    // Update teams with their stats - using Promise.all for better reliability
+    const updatePromises = Object.keys(teamStats).map(async (teamId) => {
+      const stats = teamStats[teamId];
+      console.log(
+        `Updating team ${teamId}: W=${stats.wins}, L=${stats.losses}, ELO=${stats.elo}`
+      );
+
+      const { error: updateError } = await supabase
+        .from("teams")
+        .update({
+          wins: stats.wins,
+          losses: stats.losses,
+          elo_rating: stats.elo,
+        })
+        .eq("id", teamId);
+
+      if (updateError) {
+        console.error(`Error updating team ${teamId}:`, updateError);
+      }
+      return { teamId, success: !updateError };
+    });
+
+    const updateResults = await Promise.all(updatePromises);
+    console.log("Team update results:", updateResults);
+
+    // 6. Log activity
+    await supabase.rpc("log_activity", {
+      p_icon: "science",
+      p_color: "text-purple-600",
+      p_title: "Mock Tournament Generated",
+      p_description: `Generated ${teams.length * 5} players and ${matchesToInsert.length} completed matches for ${tournament.name}.`,
+      p_tournament_id: tournamentId,
+      p_user_id: userId,
+    });
+
+    // Find the champion (last match winner)
+    const lastMatch = matchesToInsert[matchesToInsert.length - 1];
+    const championId =
+      lastMatch.team1_score > lastMatch.team2_score
+        ? lastMatch.team1_id
+        : lastMatch.team2_id;
+    const champion = teams.find((t) => t.id === championId);
+
+    res.status(200).json({
+      message: "Mock tournament generated successfully!",
+      stats: {
+        playersGenerated: teams.length * 5,
+        matchesPlayed: matchesToInsert.length,
+        champion: champion?.name || "Unknown",
+      },
+    });
+  } catch (error) {
+    console.error("Error generating mock tournament:", error);
+    next(error);
+  }
+};

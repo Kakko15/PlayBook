@@ -38,6 +38,7 @@ const TournamentCard = ({
   className,
   onEdit,
   onDelete,
+  onGenerateMock,
 }) => {
   const navigate = useNavigate();
   const dragControls = useDragControls();
@@ -66,6 +67,13 @@ const TournamentCard = ({
   const handleDelete = (e) => {
     e.stopPropagation();
     onDelete(tournament);
+  };
+
+  const handleGenerateMock = (e) => {
+    e.stopPropagation();
+    if (onGenerateMock) {
+      onGenerateMock(tournament);
+    }
   };
 
   const handlePointerDown = (e) => {
@@ -146,6 +154,10 @@ const TournamentCard = ({
               align='end'
               onClick={(e) => e.stopPropagation()}
             >
+              <DropdownMenuItem onClick={handleGenerateMock}>
+                <Icon name='science' className='mr-2' />
+                Generate Mock Data
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleEdit}>
                 <Icon name='edit' className='mr-2' />
                 Edit
