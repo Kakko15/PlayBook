@@ -23,6 +23,7 @@ import {
   getMatchDetails,
   logMatchResult,
   finalizeMatch,
+  resetElos,
 } from "../controllers/tournamentController.js";
 import {
   protect,
@@ -63,5 +64,6 @@ router.delete("/:id/schedule", clearSchedule);
 router.post("/:id/playoffs/generate", generatePlayoffBracket);
 router.put("/match/:id/log", isScorerOrAdmin, logMatchResult);
 router.post("/match/:id/finalize", isAdminOrSuperAdmin, finalizeMatch);
+router.put("/:id/elo/reset", isAdminOrSuperAdmin, resetElos);
 
 export default router;

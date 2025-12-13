@@ -2,6 +2,9 @@ import supabase from "../supabaseClient.js";
 import { calculateElo } from "../utils/tournamentLogic.js";
 import { sanitize, sanitizeObject } from "../utils/sanitize.js";
 
+// Default venues for auto-generation during schedule creation
+const DEFAULT_VENUES = ["Open Gym", "Closed Gym"];
+
 export const createTournament = async (req, res, next) => {
   const { name, game, start_date, end_date } = req.body;
   const ownerId = req.user.userId;
@@ -592,6 +595,9 @@ export const generateSchedule = async (req, res, next) => {
       }
 
       for (const node of roundMatches) {
+        // Auto-generate venue by cycling through the default venues list
+        const venueIndex = matchesToInsert.length % DEFAULT_VENUES.length;
+
         matchesToInsert.push({
           tournament_id,
           round_name: getRoundName(node.round, totalRounds),
@@ -599,6 +605,7 @@ export const generateSchedule = async (req, res, next) => {
           team1_id: node.source1.type === "team" ? node.source1.id : null,
           team2_id: node.source2.type === "team" ? node.source2.id : null,
           match_date: currentScheduleDate.toISOString(),
+          venue: DEFAULT_VENUES[venueIndex],
         });
 
         // Advance time
@@ -619,8 +626,12 @@ export const generateSchedule = async (req, res, next) => {
       .insert(matchesToInsert)
       .select("id");
 
-    if (insertError) return next(insertError);
+    if (insertError) {
+      console.error("Error inserting matches:", insertError);
+      return next(insertError);
+    }
 
+    // Update matches with next_match_id and winner_advances_to_slot
     for (let i = 0; i < matchNodes.length; i++) {
       const node = matchNodes[i];
       if (node.nextMatchTempId !== null) {
@@ -767,6 +778,8 @@ export const logMatchResult = async (req, res, next) => {
   }
 
   try {
+    console.log("Starting logMatchResult for match_id:", match_id);
+
     const { data: match, error: matchError } = await supabase
       .from("matches")
       .select(
@@ -775,7 +788,10 @@ export const logMatchResult = async (req, res, next) => {
       .eq("id", match_id)
       .single();
 
-    if (matchError) return next(matchError);
+    if (matchError) {
+      console.error("Error fetching match:", matchError);
+      return next(matchError);
+    }
     if (!match) return res.status(404).json({ message: "Match not found." });
 
     if (match.is_finalized) {
@@ -823,46 +839,117 @@ export const logMatchResult = async (req, res, next) => {
     const updates = {
       match_date: match_date || match.match_date,
       round_name: sanitize(round_name) || match.round_name,
+      team1_score: team1_score,
+      team2_score: team2_score,
+      status: "completed",
     };
-    if (venue !== undefined) {
+    if (venue !== undefined && venue !== null && venue !== "") {
       updates.venue = sanitize(venue);
     }
 
-    await supabase.from("matches").update(updates).eq("id", match_id);
+    console.log("Updating match with:", updates);
 
-    const { error: rpcError } = await supabase.rpc("atomic_log_match_result", {
-      p_match_id: match_id,
-      p_team1_id: team1.id,
-      p_team2_id: team2.id,
-      p_team1_score: team1_score,
-      p_team2_score: team2_score,
-      p_team1_new_elo: newEloTeam1,
-      p_team2_new_elo: newEloTeam2,
-      p_match_winner_id: matchWinnerId,
-      p_match_loser_id: matchLoserId,
-      p_was_completed: wasCompleted,
-      p_old_winner_id: oldWinnerId,
-      p_old_loser_id: oldLoserId,
-      p_match_date: match_date || match.match_date,
-      p_round_name: sanitize(round_name) || match.round_name,
-      p_player_stats:
-        player_stats && player_stats.length > 0 ? player_stats : null,
+    // 1. Update the match with scores, status, venue, etc.
+    const { error: updateError } = await supabase
+      .from("matches")
+      .update(updates)
+      .eq("id", match_id);
+
+    if (updateError) {
+      console.error("Error updating match:", updateError);
+      return next(updateError);
+    }
+
+    // 2. Update team1 ELO and win/loss
+    if (!wasCompleted) {
+      // First time completing - add wins/losses
+      await supabase
+        .from("teams")
+        .update({
+          elo_rating: newEloTeam1,
+          wins: team1_score > team2_score ? team1.wins + 1 : team1.wins,
+          losses: team1_score < team2_score ? team1.losses + 1 : team1.losses,
+        })
+        .eq("id", team1.id);
+
+      await supabase
+        .from("teams")
+        .update({
+          elo_rating: newEloTeam2,
+          wins: team2_score > team1_score ? team2.wins + 1 : team2.wins,
+          losses: team2_score < team1_score ? team2.losses + 1 : team2.losses,
+        })
+        .eq("id", team2.id);
+    } else {
+      // Re-logging - just update ELO
+      await supabase
+        .from("teams")
+        .update({ elo_rating: newEloTeam1 })
+        .eq("id", team1.id);
+
+      await supabase
+        .from("teams")
+        .update({ elo_rating: newEloTeam2 })
+        .eq("id", team2.id);
+    }
+
+    // 3. Update department ELOs (only if different departments)
+    if (dept1.id !== dept2.id) {
+      await supabase
+        .from("departments")
+        .update({ elo_rating: newEloDept1 })
+        .eq("id", dept1.id);
+
+      await supabase
+        .from("departments")
+        .update({ elo_rating: newEloDept2 })
+        .eq("id", dept2.id);
+    }
+
+    // 4. Handle winner advancement to next match
+    if (match.next_match_id && match.winner_advances_to_slot) {
+      const updateField =
+        match.winner_advances_to_slot === "team1" ? "team1_id" : "team2_id";
+      await supabase
+        .from("matches")
+        .update({ [updateField]: matchWinnerId })
+        .eq("id", match.next_match_id);
+    }
+
+    // 5. Save player stats if provided
+    if (player_stats && player_stats.length > 0) {
+      for (const stat of player_stats) {
+        if (stat.player_id && stat.stats) {
+          // Delete existing stats for this player in this match
+          await supabase
+            .from("match_player_stats")
+            .delete()
+            .eq("match_id", match_id)
+            .eq("player_id", stat.player_id);
+
+          // Insert new stats
+          await supabase.from("match_player_stats").insert({
+            match_id: match_id,
+            player_id: stat.player_id,
+            stats: stat.stats,
+          });
+        }
+      }
+    }
+
+    // 6. Log activity
+    await supabase.rpc("log_activity", {
+      p_icon: "sports_score",
+      p_color: "text-green-600",
+      p_title: "Match Result Logged",
+      p_description: `${team1.name} ${team1_score} - ${team2_score} ${team2.name}`,
       p_tournament_id: match.tournament_id,
       p_user_id: userId,
-      p_team1_name: team1.name,
-      p_team2_name: team2.name,
-      p_next_match_id: match.next_match_id,
-      p_winner_advances_to_slot: match.winner_advances_to_slot,
-      p_dept1_id: dept1.id,
-      p_dept2_id: dept2.id,
-      p_dept1_new_elo: newEloDept1,
-      p_dept2_new_elo: newEloDept2,
     });
-
-    if (rpcError) return next(rpcError);
 
     res.status(200).json({ message: "Match result logged successfully." });
   } catch (error) {
+    console.error("Error in logMatchResult:", error);
     next(error);
   }
 };
@@ -935,6 +1022,35 @@ export const clearSchedule = async (req, res, next) => {
     });
 
     res.status(200).json({ message: "Schedule cleared successfully." });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetElos = async (req, res, next) => {
+  const { id: tournamentId } = req.params;
+  const { userId } = req.user;
+
+  try {
+    const { error } = await supabase
+      .from("teams")
+      .update({ elo_rating: 1200, wins: 0, losses: 0 }) // Reset ELO, wins, and losses
+      .eq("tournament_id", tournamentId);
+
+    if (error) return next(error);
+
+    await supabase.rpc("log_activity", {
+      p_icon: "restart_alt",
+      p_color: "text-orange-600",
+      p_title: "Standings Reset",
+      p_description: `ELO ratings, wins, and losses were reset for all teams in the tournament.`,
+      p_tournament_id: tournamentId,
+      p_user_id: userId,
+    });
+
+    res
+      .status(200)
+      .json({ message: "Standings and ELO ratings reset successfully." });
   } catch (error) {
     next(error);
   }

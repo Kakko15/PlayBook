@@ -45,7 +45,7 @@ const HomePage = () => {
   const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.95]);
   const [openFaq, setOpenFaq] = useState(null);
-  const [liveScores, setLiveScores] = useState([]);
+
   const [leaderboard, setLeaderboard] = useState(null);
   const [nextMatch, setNextMatch] = useState(null);
   const [topPlayer, setTopPlayer] = useState(null);
@@ -241,36 +241,6 @@ const HomePage = () => {
   };
 
   useEffect(() => {
-    const fetchLiveMatches = async () => {
-      try {
-        const response = await fetch(
-          'http://localhost:3001/api/public/live-matches'
-        );
-        if (response.ok) {
-          const data = await response.json();
-          const formattedScores = data.map((match) => ({
-            match: `${match.team1?.department?.acronym || 'TBD'} vs ${match.team2?.department?.acronym || 'TBD'}`,
-            score: `${match.team1_score ?? 0} - ${match.team2_score ?? 0}`,
-            status: match.round_name || 'Live',
-            game: match.tournament?.game,
-          }));
-          setLiveScores(
-            formattedScores.length > 0
-              ? [...formattedScores, ...formattedScores]
-              : []
-          );
-        }
-      } catch (error) {
-        console.error('Failed to fetch live matches:', error);
-      }
-    };
-
-    fetchLiveMatches();
-    const interval = setInterval(fetchLiveMatches, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
         const response = await fetch(
@@ -443,39 +413,6 @@ const HomePage = () => {
             </motion.div>
           </div>
         </section>
-
-        {/* Live Score Ticker */}
-        {liveScores.length > 0 && (
-          <div className='relative z-20 border-y border-white/5 bg-black/20 backdrop-blur-sm'>
-            <div className='flex overflow-hidden py-3'>
-              <motion.div
-                className='flex gap-8 whitespace-nowrap px-4'
-                animate={{ x: ['0%', '-50%'] }}
-                transition={{
-                  repeat: Infinity,
-                  ease: 'linear',
-                  duration: 20,
-                }}
-              >
-                {[...liveScores, ...liveScores].map((score, index) => (
-                  <div
-                    key={index}
-                    className='flex items-center gap-3 rounded-full border border-white/5 bg-white/5 px-4 py-1 text-sm'
-                  >
-                    <span className='font-bold text-primary'>LIVE</span>
-                    <span className='font-medium text-foreground'>
-                      {score.match}
-                    </span>
-                    <span className='text-muted-foreground'>{score.score}</span>
-                    <span className='text-xs text-muted-foreground/60'>
-                      ({score.status})
-                    </span>
-                  </div>
-                ))}
-              </motion.div>
-            </div>
-          </div>
-        )}
 
         {/* Department Marquee */}
         <div className='relative z-10 border-b border-white/5 bg-background py-8'>

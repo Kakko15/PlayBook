@@ -364,6 +364,12 @@ const api = {
     );
     return data;
   },
+  resetElos: async (tournamentId) => {
+    const { data } = await apiClient.put(
+      `/tournaments/${tournamentId}/elo/reset`
+    );
+    return data;
+  },
   getMatchDetails: async (matchId) => {
     const { data } = await apiClient.get(`/tournaments/match/${matchId}`);
     return data;

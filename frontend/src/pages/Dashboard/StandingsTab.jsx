@@ -1,9 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '@/lib/api';
 import toast from 'react-hot-toast';
-import { Loader2, Trophy } from 'lucide-react';
+import { Loader2, Trophy, RotateCcw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import SortableTable from '@/components/ui/SortableTable';
 import confetti from 'canvas-confetti';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alertDialog';
 
 const DEPARTMENT_COLORS = {
   CBAPA: '080e88',
@@ -34,7 +46,12 @@ const StandingsTab = ({ tournamentId }) => {
     // Fire confetti from both sides
     const duration = 3000;
     const animationEnd = Date.now() + duration;
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 };
+    const defaults = {
+      startVelocity: 30,
+      spread: 360,
+      ticks: 60,
+      zIndex: 9999,
+    };
 
     const randomInRange = (min, max) => Math.random() * (max - min) + min;
 
@@ -69,6 +86,16 @@ const StandingsTab = ({ tournamentId }) => {
     setHasShownConfetti(true);
   }, []);
 
+  const handleResetElo = async () => {
+    try {
+      await api.resetElos(tournamentId);
+      toast.success('Standings reset successfully.');
+      fetchStandings();
+    } catch (error) {
+      toast.error('Failed to reset standings.');
+    }
+  };
+
   const fetchStandings = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -83,9 +110,16 @@ const StandingsTab = ({ tournamentId }) => {
         const clearWinner = leader.wins > runnerUp.wins;
 
         // Trigger confetti if there's a clear winner
-        if (tournamentComplete && clearWinner && !confettiTriggeredRef.current) {
+        if (
+          tournamentComplete &&
+          clearWinner &&
+          !confettiTriggeredRef.current
+        ) {
           // Small delay for visual effect
-          confettiTimeoutRef.current = setTimeout(() => triggerWinnerConfetti(), 500);
+          confettiTimeoutRef.current = setTimeout(
+            () => triggerWinnerConfetti(),
+            500
+          );
         }
       }
     } catch (error) {
@@ -184,13 +218,40 @@ const StandingsTab = ({ tournamentId }) => {
   ];
 
   return (
-    <SortableTable
-      data={standings}
-      columns={columns}
-      defaultSortKey='elo_rating'
-      defaultSortOrder='desc'
-      emptyMessage='No standings available'
-    />
+    <div className='flex flex-col gap-4'>
+      <div className='flex items-center justify-end'>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant='destructive' size='sm' disabled={isLoading}>
+              <RotateCcw className='mr-2 h-4 w-4' />
+              Reset Standings
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset Tournament Standings?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will reset the Wins, Losses,
+                and ELO ratings of all teams in this tournament to 0 (ELO 1200).
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleResetElo}>
+                Reset Standings
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+      <SortableTable
+        data={standings}
+        columns={columns}
+        defaultSortKey='elo_rating'
+        defaultSortOrder='desc'
+        emptyMessage='No standings available'
+      />
+    </div>
   );
 };
 

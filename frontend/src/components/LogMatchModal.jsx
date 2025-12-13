@@ -467,8 +467,8 @@ const LogMatchModal = ({ isOpen, onClose, onSuccess, match, game }) => {
                                 <SelectItem value='Open Gym'>
                                   Open Gym
                                 </SelectItem>
-                                <SelectItem value='Close Gym'>
-                                  Close Gym
+                                <SelectItem value='Closed Gym'>
+                                  Closed Gym
                                 </SelectItem>
                               </SelectContent>
                             </Select>
@@ -690,6 +690,7 @@ const PlayerRow = ({ field, index, statCols, form, isLoading }) => {
                     disabled={isLoading || col.key === 'pts'}
                     onFocus={(e) => e.target.select()}
                     {...inputField}
+                    value={inputField.value ?? ''}
                   />
                 </FormControl>
               </div>
