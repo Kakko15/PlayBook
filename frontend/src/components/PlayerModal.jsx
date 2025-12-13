@@ -147,7 +147,10 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className='sm:max-w-[500px]'>
+      <DialogContent
+        className='sm:max-w-[500px]'
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>
             {isEditMode ? 'Edit Player' : 'Add New Player'}
@@ -168,7 +171,9 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
               name='name'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Player Name</FormLabel>
+                  <FormLabel>
+                    Player Name <span className='text-red-500'>*</span>
+                  </FormLabel>
                   <FormControl>
                     <Input
                       placeholder='e.g., "Juan Dela Cruz"'
@@ -190,7 +195,9 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
                 name='student_id'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Student ID No.</FormLabel>
+                    <FormLabel>
+                      Student ID No. <span className='text-red-500'>*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input
                         placeholder='e.g. 21-12345'
@@ -230,7 +237,9 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
                   name='course'
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Course / Program</FormLabel>
+                      <FormLabel>
+                        Course / Program <span className='text-red-500'>*</span>
+                      </FormLabel>
                       <FormControl>
                         <Input
                           placeholder='e.g. BS Civil Engineering'
@@ -249,7 +258,9 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
                   name='year_level'
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Year Level</FormLabel>
+                      <FormLabel>
+                        Year Level <span className='text-red-500'>*</span>
+                      </FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
@@ -281,7 +292,9 @@ const PlayerModal = ({ isOpen, onClose, onSuccess, teamId, player }) => {
                 name='position'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Primary Position</FormLabel>
+                    <FormLabel>
+                      Primary Position <span className='text-red-500'>*</span>
+                    </FormLabel>
                     <Select
                       onValueChange={(val) => {
                         field.onChange(val);

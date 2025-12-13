@@ -179,7 +179,10 @@ const TeamModal = ({ isOpen, onClose, onSuccess, tournamentId, team }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className='sm:max-w-[500px]'>
+      <DialogContent
+        className='sm:max-w-[500px]'
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>{isEditMode ? 'Edit Team' : 'Add Team'}</DialogTitle>
           <DialogDescription>
