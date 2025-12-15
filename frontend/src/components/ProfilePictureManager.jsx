@@ -138,7 +138,11 @@ const ProfilePictureManager = ({
       const imageBase64 = canvas.toDataURL('image/jpeg');
 
       onSuccess(imageBase64);
-      handleClose();
+      // Reset to main view but don't close the dialog
+      setImage(null);
+      setScale(1.2);
+      setRotate(0);
+      setMode('main');
       setIsLoading(false);
     }
   };

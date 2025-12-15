@@ -101,11 +101,11 @@ const AdminLayout = () => {
   const handleProfileUpdate = async (imageBase64) => {
     try {
       if (imageBase64) {
-        const { user: updatedUser } =
+        const { profilePictureUrl } =
           await api.updateProfilePicture(imageBase64);
         setProfile((prev) => ({
           ...prev,
-          profile_picture_url: updatedUser.profile_picture_url,
+          profile_picture_url: profilePictureUrl,
         }));
       } else {
         await api.removeProfilePicture();
